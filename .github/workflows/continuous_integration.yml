@@ -13,8 +13,8 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: nekko-api
-  IMAGE_TAG_TEST: aifoundry-org/nekko-api:test
-  IMAGE_TAG_LATEST: aifoundry-org/nekko-api:latest
+  IMAGE_TAG_TEST: test
+  IMAGE_TAG_LATEST: latest
 
 jobs:
   build-image:
