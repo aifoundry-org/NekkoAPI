@@ -7,7 +7,7 @@ FROM ${IMAGE}
 # Re-declare the ARG after FROM
 ARG IMAGE
 
-# Update and upgrade the existing packages 
+# Update and upgrade the existing packages
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
@@ -15,6 +15,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     libopenblas-dev \
     build-essential \
     pkgconf \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 

@@ -1,0 +1,43 @@
+services:
+  nekko_api:
+    platform: linux/amd64
+    build:
+      context: ../..
+      dockerfile: docker/simple/Dockerfile
+      tags:
+        - nekko-api:latest
+    cap_add:
+      - SYS_RESOURCE
+    volumes:
+      - ../../models:/app/models
+      - ../../examples/settings.json:/app/settings.json
+    environment:
+      - CONFIG_FILE=settings.json
+    networks:
+      - nekko_api-network
+    expose:
+      - 8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://0.0.0.0:8000/v1/models"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      start_interval: 5s
+      retries: 5
+
+  nginx:
+    platform: linux/amd64
+    image: nginx:alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - nekko_api-network
+    ports:
+      - 80:80
+    depends_on:
+      nekko_api:
+        condition: service_healthy
+
+networks:
+  nekko_api-network:
+    driver: bridge
