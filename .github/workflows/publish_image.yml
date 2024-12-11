@@ -1,6 +1,7 @@
 name: continuous_integration
 
 on:
+  pull_request: # temp
   workflow_dispatch:
     inputs:
       tag:
@@ -14,7 +15,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: nekko-api
+  IMAGE_NAME: aifoundry-org/nekko-api
 
 jobs:
   build-image:
@@ -40,7 +41,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: ${{ inputs.tag }}
+          tags: ${{ inputs.tag || 'test' }}
       - name: Build and push image
         id: push
         uses: docker/build-push-action@v6
