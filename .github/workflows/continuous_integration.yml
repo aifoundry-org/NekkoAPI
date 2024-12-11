@@ -31,7 +31,15 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.13.0
-      - name: Set up venv
+      - name: Cache Python packages
+        id: pip-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install Python packages
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install -e ".[all]"
