@@ -1,0 +1,64 @@
+name: continuous_integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: nekko-api
+  IMAGE_TAG_TEST: aifoundry-org/nekko-api:test
+  IMAGE_TAG_LATEST: aifoundry-org/nekko-api:latest
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Log in to the container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and export image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/simple/Dockerfile
+          load: true
+          tags: ${{ env.IMAGE_TAG_TEST }}
+      - name: Test
+        run: |
+          docker run --rm ${{ env.IMAGE_TAG_TEST }} /bin/sh -c "python3 -m pip install -e \".[all]\" && python3 -m pytest --full-trace -v"
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: ${{ env.IMAGE_TAG_LATEST }}
+      - name: Build and push image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/simple/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
