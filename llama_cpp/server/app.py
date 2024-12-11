@@ -17,7 +17,7 @@ from starlette.concurrency import run_in_threadpool, iterate_in_threadpool
 from fastapi import Depends, FastAPI, APIRouter, Request, HTTPException, status, Body
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sse_starlette.sse import EventSourceResponse
 from starlette_context.plugins import RequestIdPlugin  # type: ignore
 from starlette_context.middleware import RawContextMiddleware
@@ -119,9 +119,8 @@ def create_app(
             server_settings = ServerSettings.model_validate(config_file_settings)
             model_settings = config_file_settings.models
 
+    # TODO: remove settings argument altogether.
     if server_settings is None and model_settings is None:
-        if settings is None:
-            settings = Settings()
         server_settings = ServerSettings.model_validate(settings)
         model_settings = [ModelSettings.model_validate(settings)]
 
@@ -133,7 +132,7 @@ def create_app(
     middleware = [Middleware(RawContextMiddleware, plugins=(RequestIdPlugin(),))]
     app = FastAPI(
         middleware=middleware,
-        title="🦙 llama.cpp Python API",
+        title="NekkoAPI",
         version=llama_cpp.__version__,
         root_path=server_settings.root_path,
     )
@@ -191,8 +190,8 @@ def _logit_bias_tokens_to_input_ids(
 ) -> Dict[str, float]:
     to_bias: Dict[str, float] = {}
     for token, score in logit_bias.items():
-        token = token.encode("utf-8")
-        for input_id in llama.tokenize(token, add_bos=False, special=True):
+        token_encoded = token.encode("utf-8")
+        for input_id in llama.tokenize(token_encoded, add_bos=False, special=True):
             to_bias[str(input_id)] = score
     return to_bias
 
@@ -203,7 +202,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 async def authenticate(
     settings: Settings = Depends(get_server_settings),
-    authorization: Optional[str] = Depends(bearer_scheme),
+    authorization: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
 ):
     # Skip API key check if it's not set in settings
     if settings.api_key is None:
@@ -334,7 +333,7 @@ async def create_completion(
             yield from iterator_or_completion
             exit_stack.close()
 
-        send_chan, recv_chan = anyio.create_memory_object_stream(10)
+        send_chan, recv_chan = anyio.create_memory_object_stream(10) # type: ignore
         return EventSourceResponse(
             recv_chan,
             data_sender_callable=partial(  # type: ignore
@@ -345,7 +344,7 @@ async def create_completion(
                 on_complete=exit_stack.close,
             ),
             sep="\n",
-            ping_message_factory=_ping_message_factory,
+            ping_message_factory=_ping_message_factory, # type: ignore
         )
     else:
         exit_stack.close()
@@ -492,6 +491,8 @@ async def create_chat_completion(
         "user",
         "min_tokens",
     }
+    # TODO: use whitelisting and only include permitted fields.
+    # TODO: only leave OpenAI API compatible fields.
     kwargs = body.model_dump(exclude=exclude)
     llama = llama_proxy(body.model)
     if body.logit_bias is not None:
@@ -532,7 +533,7 @@ async def create_chat_completion(
             yield from iterator_or_completion
             exit_stack.close()
 
-        send_chan, recv_chan = anyio.create_memory_object_stream(10)
+        send_chan, recv_chan = anyio.create_memory_object_stream(10) # type: ignore
         return EventSourceResponse(
             recv_chan,
             data_sender_callable=partial(  # type: ignore
@@ -543,7 +544,7 @@ async def create_chat_completion(
                 on_complete=exit_stack.close,
             ),
             sep="\n",
-            ping_message_factory=_ping_message_factory,
+            ping_message_factory=_ping_message_factory, # type: ignore
         )
     else:
         exit_stack.close()

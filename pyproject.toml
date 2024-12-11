@@ -7,7 +7,7 @@ name = "nekko_api"
 dynamic = ["version"]
 description = "OpenAI API compatible llama.cpp server"
 readme = "README.md"
-license = { text = "MIT" }
+license = { text = "Apache License 2.0" }
 authors = [
 ]
 dependencies = [
@@ -48,6 +48,7 @@ test = [
     "huggingface-hub>=0.23.0"
 ]
 dev = [
+    "mypy>=1.13.0",
     "black>=23.3.0",
     "twine>=4.0.2",
     "mkdocs>=1.4.3",
