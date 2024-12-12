@@ -25,6 +25,30 @@ services:
       start_interval: 5s
       retries: 5
 
+  ui:
+    image: ghcr.io/open-webui/open-webui:0.4.8
+    volumes:
+      - ./ui:/app/backend/data
+    environment:
+      - WEBUI_AUTH=false
+      - WEBUI_NAME=NekkoAPI UI
+      - ENABLE_OLLAMA_API=false
+      - OPENAI_API_BASE_URL=http://nekko_api:8000/v1
+    networks:
+      - nekko_api-network
+    expose:
+      - 8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://0.0.0.0:8080/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      start_interval: 5s
+      retries: 5
+    depends_on:
+      nekko_api:
+        condition: service_healthy
+
   nginx:
     platform: linux/amd64
     image: nginx:alpine
@@ -36,6 +60,8 @@ services:
       - 80:80
     depends_on:
       nekko_api:
+        condition: service_healthy
+      ui:
         condition: service_healthy
 
 networks:
