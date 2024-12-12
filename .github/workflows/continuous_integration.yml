@@ -1,0 +1,47 @@
+name: continuous_integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y \
+          python3 \
+          python3-pip \
+          ninja-build \
+          libopenblas-dev \
+          build-essential \
+          pkgconf
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.13.0
+      - name: Cache Python packages
+        id: pip-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install Python packages
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -e ".[all]"
+      - name: Run tests
+        run: python3 -m pytest --full-trace -v

@@ -39,6 +39,9 @@ build.openblas:
 test:
 	python3 -m pytest --full-trace -v
 
+test-docker:
+	docker run --rm nekko-api:latest /bin/sh -c "python3 -m pip install -e \".[all]\" && python3 -m pytest --full-trace -v"
+
 docker:
 	docker build -t nekko-api:latest -f docker/simple/Dockerfile .
 
