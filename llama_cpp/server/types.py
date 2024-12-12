@@ -212,6 +212,12 @@ class CreateChatCompletionRequest(BaseModel):
     max_tokens: Optional[int] = Field(
         default=None,
         description="The maximum number of tokens to generate. Defaults to inf",
+        deprecated="Deprecated in favor of max_completion_tokens",
+    )
+    max_completion_tokens: Optional[int] = Field(
+        gt=0,
+        default=None,
+        description="An upper bound for the number of tokens that can be generated for a completion. Defaults to inf",
     )
     min_tokens: int = min_tokens_field
     logprobs: Optional[bool] = Field(

@@ -490,6 +490,7 @@ async def create_chat_completion(
         "logit_bias_type",
         "user",
         "min_tokens",
+        "max_completion_tokens",
     }
     # TODO: use whitelisting and only include permitted fields.
     # TODO: only leave OpenAI API compatible fields.
@@ -513,6 +514,10 @@ async def create_chat_completion(
             kwargs["logits_processor"] = _min_tokens_logits_processor
         else:
             kwargs["logits_processor"].extend(_min_tokens_logits_processor)
+
+    # Override max_tokens with max_completion_tokens.
+    if body.max_completion_tokens is not None:
+        kwargs["max_tokens"] = body.max_completion_tokens
 
     try:
         iterator_or_completion: Union[
