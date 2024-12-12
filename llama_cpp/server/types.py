@@ -23,7 +23,7 @@ temperature_field = Field(
 )
 
 top_p_field = Field(
-    default=0.95,
+    default=1.0,
     ge=0.0,
     le=1.0,
     description="Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P.\n\n"

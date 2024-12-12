@@ -30,6 +30,7 @@ stream = client.chat.completions.create(
 	messages=messages, 
 	max_completion_tokens=200,
 	stop=["4.", "sushi"],
+	top_p=0.3,
 	stream=True
 )
 
