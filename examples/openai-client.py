@@ -31,6 +31,7 @@ stream = client.chat.completions.create(
 	max_completion_tokens=200,
 	stop=["4.", "sushi"],
 	top_p=0.3,
+	# temperature=2.0,
 	stream=True
 )
 
