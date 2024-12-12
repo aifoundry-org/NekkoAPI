@@ -28,7 +28,7 @@ services:
   ui:
     image: ghcr.io/open-webui/open-webui:0.4.8
     volumes:
-      - ./ui:/app/backend/data
+      - ui:/app/backend/data
     environment:
       - WEBUI_AUTH=false
       - WEBUI_NAME=NekkoAPI UI
@@ -42,7 +42,7 @@ services:
       test: ["CMD", "curl", "-f", "http://0.0.0.0:8080/health"]
       interval: 30s
       timeout: 5s
-      start_period: 30s
+      start_period: 2m
       start_interval: 5s
       retries: 5
     depends_on:
@@ -67,3 +67,6 @@ services:
 networks:
   nekko_api-network:
     driver: bridge
+
+volumes:
+  ui:
