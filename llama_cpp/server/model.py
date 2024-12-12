@@ -24,21 +24,24 @@ class LlamaProxy:
         self._current_model: Optional[llama_cpp.Llama] = None
         self._current_model_alias: Optional[str] = None
 
+        # TODO: there should be no such thing as default model.
         self._default_model_settings: ModelSettings = models[0]
         self._default_model_alias: str = self._default_model_settings.model_alias  # type: ignore
 
+        # TODO: when _default_model is removed, what do we set as
+        #       current model and do we load it?
         # Load default model
         self._current_model = self.load_llama_from_model_settings(
             self._default_model_settings
         )
         self._current_model_alias = self._default_model_alias
 
-    def __call__(self, model: Optional[str] = None) -> llama_cpp.Llama:
+    def __call__(self, model: str = None) -> llama_cpp.Llama:
         if model is None:
             model = self._default_model_alias
 
         if model not in self._model_settings_dict:
-            model = self._default_model_alias
+            raise ValueError(f"Model {model} not found.")
 
         if model == self._current_model_alias:
             if self._current_model is not None:

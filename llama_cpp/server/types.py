@@ -234,8 +234,9 @@ class CreateChatCompletionRequest(BaseModel):
         default=None,
     )
 
+    model: str = model_field
+
     # ignored or currently unsupported
-    model: Optional[str] = model_field
     n: Optional[int] = 1
     user: Optional[str] = Field(None)
 
