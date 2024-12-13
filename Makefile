@@ -58,6 +58,9 @@ run-example-docker: example-models
 	  -it \
 	  nekko-api
 
+run-demo: example-models
+	docker compose -f docker/web/docker-compose.yml up
+
 example-models: models/SmolLM2-135M-Instruct-Q6_K.gguf models/Llama-3.2-1B-Instruct-Q5_K_S.gguf models/OLMo-7B-Instruct-hf-0724-Q4_K.gguf
 
 models/SmolLM2-135M-Instruct-Q6_K.gguf:
