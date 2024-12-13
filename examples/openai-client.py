@@ -1,7 +1,7 @@
 from openai import OpenAI
 
-model = "llama"
-# model = "smolm2-135m"
+# model = "llama"
+model = "smolm2-135m"
 # model = "olmo-7b"
 uri = "http://localhost:8000/v1/"
 
@@ -28,7 +28,10 @@ messages = [
 stream = client.chat.completions.create(
     model=model, 
 	messages=messages, 
-	max_tokens=500,
+	max_completion_tokens=200,
+	stop=["4.", "sushi"],
+	top_p=0.3,
+	# temperature=2.0,
 	stream=True
 )
 

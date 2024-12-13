@@ -16,24 +16,20 @@ max_tokens_field = Field(
     default=16, ge=1, description="The maximum number of tokens to generate."
 )
 
-min_tokens_field = Field(
-    default=0,
-    ge=0,
-    description="The minimum number of tokens to generate. It may return fewer tokens if another condition is met (e.g. max_tokens, stop).",
-)
-
 temperature_field = Field(
-    default=0.8,
+    default=1.0,
+    ge=0.0,
+    le=2.0,
     description="Adjust the randomness of the generated text.\n\n"
-    + "Temperature is a hyperparameter that controls the randomness of the generated text. It affects the probability distribution of the model's output tokens. A higher temperature (e.g., 1.5) makes the output more random and creative, while a lower temperature (e.g., 0.5) makes the output more focused, deterministic, and conservative. The default value is 0.8, which provides a balance between randomness and determinism. At the extreme, a temperature of 0 will always pick the most likely next token, leading to identical outputs in each run.",
+    + "Temperature is a hyperparameter that controls the randomness of the generated text. It affects the probability distribution of the model's output tokens. A higher temperature (e.g., 1.5) makes the output more random and creative, while a lower temperature (e.g., 0.5) makes the output more focused, deterministic, and conservative. The default value is 1, which provides a balance between randomness and determinism. At the extreme, a temperature of 0 will always pick the most likely next token, leading to identical outputs in each run. We recommend to alter this or top_p, but not both.",
 )
 
 top_p_field = Field(
-    default=0.95,
+    default=1.0,
     ge=0.0,
     le=1.0,
     description="Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P.\n\n"
-    + "Top-p sampling, also known as nucleus sampling, is another text generation method that selects the next token from a subset of tokens that together have a cumulative probability of at least p. This method provides a balance between diversity and quality by considering both the probabilities of tokens and the number of tokens to sample from. A higher value for top_p (e.g., 0.95) will lead to more diverse text, while a lower value (e.g., 0.5) will generate more focused and conservative text.",
+    + "Top-p sampling, also known as nucleus sampling, is another text generation method that selects the next token from a subset of tokens that together have a cumulative probability of at least p. This method provides a balance between diversity and quality by considering both the probabilities of tokens and the number of tokens to sample from. A higher value for top_p (e.g., 0.95) will lead to more diverse text, while a lower value (e.g., 0.5) will generate more focused and conservative text. We recomment altering this or temperature, but not both.",
 )
 
 min_p_field = Field(
@@ -117,7 +113,6 @@ class CreateCompletionRequest(BaseModel):
     max_tokens: Optional[int] = Field(
         default=16, ge=0, description="The maximum number of tokens to generate."
     )
-    min_tokens: int = min_tokens_field
     temperature: float = temperature_field
     top_p: float = top_p_field
     min_p: float = min_p_field
@@ -212,8 +207,13 @@ class CreateChatCompletionRequest(BaseModel):
     max_tokens: Optional[int] = Field(
         default=None,
         description="The maximum number of tokens to generate. Defaults to inf",
+        deprecated="Deprecated in favor of max_completion_tokens",
     )
-    min_tokens: int = min_tokens_field
+    max_completion_tokens: Optional[int] = Field(
+        gt=0,
+        default=None,
+        description="An upper bound for the number of tokens that can be generated for a completion. Defaults to inf",
+    )
     logprobs: Optional[bool] = Field(
         default=False,
         description="Whether to output the logprobs or not. Default is True",
@@ -236,8 +236,9 @@ class CreateChatCompletionRequest(BaseModel):
         default=None,
     )
 
+    model: str = model_field
+
     # ignored or currently unsupported
-    model: Optional[str] = model_field
     n: Optional[int] = 1
     user: Optional[str] = Field(None)
 

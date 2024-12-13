@@ -103,6 +103,7 @@ class ModelSettings(BaseSettings):
     offload_kqv: bool = Field(
         default=True, description="Whether to offload kqv to the GPU."
     )
+    # TODO: default this to True?
     flash_attn: bool = Field(
         default=False, description="Whether to use flash attention."
     )
