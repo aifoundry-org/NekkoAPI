@@ -68,7 +68,7 @@ jobs:
       DEMO_USER: ${{ secrets.DEMO_USER }}
       DEMO_HOST: ${{ secrets.DEMO_HOST }}
       DEMO_APP_DIR: ${{ secrets.DEMO_APP_DIR }}
-    if: ${{ inputs.tag && env.DEMO_USER != '' && env.DEMO_HOST != '' && env.DEMO_APP_DIR != '' }}
+    if: ${{ inputs.tag }}
     needs: [build-image]
     permissions:
       contents: read
@@ -76,9 +76,12 @@ jobs:
       attestations: read
     steps:
       - name: Deploy to demo
+        if: ${{ env.DEMO_USER != '' && env.DEMO_HOST != '' && env.DEMO_APP_DIR != '' }}
         run: >
           ssh ${{ env.DEMO_USER }}@${{ env.DEMO_HOST }}
           'cd ${{ env.DEMO_APP_DIR }} &&
           echo "NEKKO_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" > .env &&
           sudo docker-compose pull &&
           sudo docker-compose up --force-recreate -d'
+      - if: ${{ env.DEMO_USER == '' || env.DEMO_HOST == '' || env.DEMO_APP_DIR == '' }}
+        run: echo 'Could not find demo deployment settings in secrets, skipping'
