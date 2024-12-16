@@ -49,8 +49,6 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=${{ inputs.tag }}
-            type=ref,event=branch
-            type=ref,event=workflow_dispatch
             type=sha
       - name: Build and push image
         id: push
