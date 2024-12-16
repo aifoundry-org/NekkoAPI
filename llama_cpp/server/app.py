@@ -184,18 +184,6 @@ async def get_event_publisher(
                 on_complete()
 
 
-def _logit_bias_tokens_to_input_ids(
-    llama: llama_cpp.Llama,
-    logit_bias: Dict[str, float],
-) -> Dict[str, float]:
-    to_bias: Dict[str, float] = {}
-    for token, score in logit_bias.items():
-        token_encoded = token.encode("utf-8")
-        for input_id in llama.tokenize(token_encoded, add_bos=False, special=True):
-            to_bias[str(input_id)] = score
-    return to_bias
-
-
 # Setup Bearer authentication scheme
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -288,17 +276,9 @@ async def create_completion(
     exclude = {
         "n",
         "best_of",
-        "logit_bias_type",
         "user",
     }
     kwargs = body.model_dump(exclude=exclude)
-
-    if body.logit_bias is not None:
-        kwargs["logit_bias"] = (
-            _logit_bias_tokens_to_input_ids(llama, body.logit_bias)
-            if body.logit_bias_type == "tokens"
-            else body.logit_bias
-        )
 
     if body.grammar is not None:
         kwargs["grammar"] = llama_cpp.LlamaGrammar.from_string(body.grammar)
@@ -477,7 +457,6 @@ async def create_chat_completion(
         )
     exclude = {
         "n",
-        "logit_bias_type",
         "user",
         "max_completion_tokens",
     }
@@ -485,12 +464,6 @@ async def create_chat_completion(
     # TODO: only leave OpenAI API compatible fields.
     kwargs = body.model_dump(exclude=exclude)
     llama = llama_proxy(body.model)
-    if body.logit_bias is not None:
-        kwargs["logit_bias"] = (
-            _logit_bias_tokens_to_input_ids(llama, body.logit_bias)
-            if body.logit_bias_type == "tokens"
-            else body.logit_bias
-        )
 
     # LLama.cpp doesn't make distinction between "json_object" and "json_schema"
     # types.

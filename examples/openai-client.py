@@ -1,8 +1,8 @@
 import json
 from openai import OpenAI
 
-# model = "llama"
-model = "smolm2-135m"
+model = "llama"
+# model = "smolm2-135m"
 # model = "olmo-7b"
 uri = "http://localhost:8000/v1/"
 
@@ -35,6 +35,9 @@ def example_simple():
         stop=["4.", "sushi"],
         top_p=0.3,
         # temperature=2.0,
+        # Multiple forms of the word time: " time", "time", "Time" etc
+        # Assumes GPT-4 tokenizer (works with llama models)
+        # logit_bias={ 1712: -100, 3115: -100, 15487: -100, 892: -100, 1489: -100 },
         stream=True
     )
 
