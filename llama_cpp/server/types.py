@@ -141,7 +141,6 @@ class CreateCompletionRequest(BaseModel):
     # llama.cpp specific parameters
     top_k: int = top_k_field
     repeat_penalty: float = repeat_penalty_field
-    logit_bias_type: Optional[Literal["input_ids", "tokens"]] = Field(None)
     mirostat_mode: int = mirostat_mode_field
     mirostat_tau: float = mirostat_tau_field
     mirostat_eta: float = mirostat_eta_field
@@ -245,7 +244,6 @@ class CreateChatCompletionRequest(BaseModel):
     # llama.cpp specific parameters
     top_k: int = top_k_field
     repeat_penalty: float = repeat_penalty_field
-    logit_bias_type: Optional[Literal["input_ids", "tokens"]] = Field(None)
     mirostat_mode: int = mirostat_mode_field
     mirostat_tau: float = mirostat_tau_field
     mirostat_eta: float = mirostat_eta_field
