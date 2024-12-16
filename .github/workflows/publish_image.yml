@@ -24,62 +24,65 @@ env:
   IMAGE_NAME: aifoundry-org/nekko-api
 
 jobs:
-  build-image:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
-      id-token: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - name: Log in to the container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract metadata for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=${{ inputs.tag || 'test' }}
-            type=sha
-      - name: Build and push image
-        id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: docker/simple/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+  # build-image:
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #     packages: write
+  #     attestations: write
+  #     id-token: write
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #     - name: Log in to the container registry
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: ${{ env.REGISTRY }}
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Extract metadata for Docker
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+  #         tags: |
+  #           type=raw,value=${{ inputs.tag || 'test' }}
+  #           type=sha
+  #     - name: Build and push image
+  #       id: push
+  #       uses: docker/build-push-action@v6
+  #       with:
+  #         context: .
+  #         file: docker/simple/Dockerfile
+  #         push: true
+  #         tags: ${{ steps.meta.outputs.tags }}
+  #         labels: ${{ steps.meta.outputs.labels }}
 
   deploy-to-demo:
     runs-on: ubuntu-latest
     env:
       DEMO_USER: ${{ secrets.DEMO_USER }}
       DEMO_HOST: ${{ secrets.DEMO_HOST }}
+      DEMO_SSH_KEY: ${{ secrets.DEMO_SSH_KEY }}
       DEMO_APP_DIR: ${{ secrets.DEMO_APP_DIR }}
     if: ${{ inputs.deploy_to_demo || true }}
-    needs: [build-image]
+    # needs: [build-image]
     permissions:
       contents: read
       packages: read
       attestations: read
     steps:
       - name: Deploy to demo
-        if: ${{ env.DEMO_USER != '' && env.DEMO_HOST != '' && env.DEMO_APP_DIR != '' }}
+        if: ${{ env.DEMO_USER != '' && env.DEMO_HOST != '' && env.DEMO_SSH_KEY != '' && env.DEMO_APP_DIR != '' }}
         run: >
+          ssh-add - <<< "${{ env.DEMO_SSH_KEY }}"
+
           ssh ${{ env.DEMO_USER }}@${{ env.DEMO_HOST }}
           'cd ${{ env.DEMO_APP_DIR }} &&
           echo "NEKKO_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag || 'test' }}" > .env &&
           sudo docker-compose pull &&
           sudo docker-compose up --force-recreate -d'
-      - if: ${{ env.DEMO_USER == '' || env.DEMO_HOST == '' || env.DEMO_APP_DIR == '' }}
+      - if: ${{ env.DEMO_USER == '' || env.DEMO_HOST == '' || env.DEMO_SSH_KEY == '' || env.DEMO_APP_DIR == '' }}
         run: echo 'Could not find demo deployment settings in secrets, skipping'
