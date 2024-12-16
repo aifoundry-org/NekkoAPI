@@ -8,6 +8,10 @@ on:
         description: Image tag
         required: true
         default: latest
+      deploy_to_demo:
+        type: boolean
+        description: Deploy new image to demo?
+        default: true
 
 concurrency:
   group: ${{ github.workflow }}
@@ -54,3 +58,21 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  deploy-to-demo:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.tag && secrets.DEMO_USER && secrets.DEMO_HOST && secrets.DEMO_APP_DIR }}
+    needs: [build-image]
+    permissions:
+      contents: read
+      packages: read
+      attestations: read
+      id-token: read
+    steps:
+      - name: Deploy to demo
+        run: >
+          ssh ${{ secrets.DEMO_USER }}@${{ secrets.DEMO_HOST }}
+          'cd ${{ secrets.DEMO_APP_DIR }} &&
+          echo "NEKKO_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" > .env &&
+          sudo docker-compose pull &&
+          sudo docker-compose up --force-recreate -d'
