@@ -64,18 +64,21 @@ jobs:
 
   deploy-to-demo:
     runs-on: ubuntu-latest
-    if: ${{ inputs.tag && secrets.DEMO_USER && secrets.DEMO_HOST && secrets.DEMO_APP_DIR }}
+    env:
+      DEMO_USER: ${{ secrets.DEMO_USER }}
+      DEMO_HOST: ${{ secrets.DEMO_HOST }}
+      DEMO_APP_DIR: ${{ secrets.DEMO_APP_DIR }}
+    if: ${{ inputs.tag && env.DEMO_USER != '' && env.DEMO_HOST != '' && env.DEMO_APP_DIR != '' }}
     needs: [build-image]
     permissions:
       contents: read
       packages: read
       attestations: read
-      id-token: read
     steps:
       - name: Deploy to demo
         run: >
-          ssh ${{ secrets.DEMO_USER }}@${{ secrets.DEMO_HOST }}
-          'cd ${{ secrets.DEMO_APP_DIR }} &&
+          ssh ${{ env.DEMO_USER }}@${{ env.DEMO_HOST }}
+          'cd ${{ env.DEMO_APP_DIR }} &&
           echo "NEKKO_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" > .env &&
           sudo docker-compose pull &&
           sudo docker-compose up --force-recreate -d'
