@@ -8,6 +8,10 @@ on:
         description: Image tag
         required: true
         default: latest
+      deploy_to_demo:
+        type: boolean
+        description: Deploy new image to demo?
+        default: true
 
 concurrency:
   group: ${{ github.workflow }}
@@ -40,7 +44,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: ${{ inputs.tag }}
+          tags: |
+            type=raw,value=${{ inputs.tag }}
+            type=sha
       - name: Build and push image
         id: push
         uses: docker/build-push-action@v6
@@ -50,3 +56,35 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  deploy-to-demo:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.deploy_to_demo }}
+    env:
+      DEMO_USER: ${{ secrets.DEMO_USER }}
+      DEMO_HOST: ${{ secrets.DEMO_HOST }}
+      DEMO_SSH_KEY: ${{ secrets.DEMO_SSH_KEY }}
+      DEMO_APP_DIR: ${{ secrets.DEMO_APP_DIR }}
+    needs: [build-image]
+    steps:
+      - name: Configure ssh
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ env.DEMO_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat >> ~/.ssh/config <<END
+          Host demo
+            HostName $DEMO_HOST
+            User $DEMO_USER
+            IdentityFile ~/.ssh/id_rsa
+            StrictHostKeyChecking no
+          END
+      - name: Deploy to demo
+        if: ${{ env.DEMO_USER != '' && env.DEMO_HOST != '' && env.DEMO_SSH_KEY != '' && env.DEMO_APP_DIR != '' }}
+        run: >
+          ssh demo 'cd ${{ env.DEMO_APP_DIR }} &&
+          echo "NEKKO_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag }}" > .env &&
+          sudo docker-compose pull &&
+          sudo docker-compose up --force-recreate -d'
+      - if: ${{ env.DEMO_USER == '' || env.DEMO_HOST == '' || env.DEMO_SSH_KEY == '' || env.DEMO_APP_DIR == '' }}
+        run: echo 'Could not find demo deployment settings in secrets, skipping'
