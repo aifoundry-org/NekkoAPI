@@ -59,17 +59,13 @@ jobs:
 
   deploy-to-demo:
     runs-on: ubuntu-latest
+    if: ${{ inputs.deploy_to_demo }}
     env:
       DEMO_USER: ${{ secrets.DEMO_USER }}
       DEMO_HOST: ${{ secrets.DEMO_HOST }}
       DEMO_SSH_KEY: ${{ secrets.DEMO_SSH_KEY }}
       DEMO_APP_DIR: ${{ secrets.DEMO_APP_DIR }}
-    if: ${{ inputs.deploy_to_demo }}
     needs: [build-image]
-    permissions:
-      contents: read
-      packages: read
-      attestations: read
     steps:
       - name: Configure ssh
         run: |
