@@ -1,9 +1,6 @@
 name: publish_image
 
 on:
-  push:
-    branches:
-      - chore/demo-deploy
   workflow_dispatch:
     inputs:
       tag:
