@@ -74,13 +74,22 @@ jobs:
       packages: read
       attestations: read
     steps:
+      - name: Configure ssh
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ env.DEMO_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat >> ~/.ssh/config <<END
+          Host demo
+            HostName $DEMO_HOST
+            User $DEMO_USER
+            IdentityFile ~/.ssh/id_rsa
+            StrictHostKeyChecking no
+          END
       - name: Deploy to demo
         if: ${{ env.DEMO_USER != '' && env.DEMO_HOST != '' && env.DEMO_SSH_KEY != '' && env.DEMO_APP_DIR != '' }}
         run: >
-          ssh-add - <<< "${{ env.DEMO_SSH_KEY }}"
-
-          ssh ${{ env.DEMO_USER }}@${{ env.DEMO_HOST }}
-          'cd ${{ env.DEMO_APP_DIR }} &&
+          ssh demo 'cd ${{ env.DEMO_APP_DIR }} &&
           echo "NEKKO_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.tag || 'test' }}" > .env &&
           sudo docker-compose pull &&
           sudo docker-compose up --force-recreate -d'
