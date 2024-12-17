@@ -1,4 +1,4 @@
-import os
+import uuid
 import openai
 import pytest
 
@@ -6,7 +6,7 @@ import pytest
 @pytest.fixture
 def setup_openai_client():
     """Fixture to set up OpenAI client with the API key."""
-    openai.api_key = os.getenv("OPENAI_API_KEY")
+    openai.api_key = str(uuid.uuid4())
     if not openai.api_key:
         pytest.fail("OPENAI_API_KEY environment variable is not set")
 
