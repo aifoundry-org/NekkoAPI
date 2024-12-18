@@ -44,21 +44,13 @@ jobs:
           python3 -m pip install --upgrade pip
           python3 -m pip install -e ".[all]"
       - name: Start a server
+        env:
+          MODEL: "msmolm2-135m"
         run: |
-          make docker
           mkdir -p models
-          curl -L https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q5_K_S.gguf \
-          -o models/Llama-3.2-1B-Instruct-Q5_K_S.gguf
-          docker run -d \
-            -v ./models:/app/models \
-            -v ./examples/settings.json:/app/settings.json \
-            --cap-add SYS_RESOURCE \
-            -p 8000:8000 \
-            -e CONFIG_FILE=settings.json \
-            --name nekko-api-container \
-            nekko-api
+          curl -L https://huggingface.co/lmstudio-community/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q6_K.gguf \
+          -o models/SmolLM2-135M-Instruct-Q6_K.gguf
+          make run-server
       - name: Run tests
         run: |
           python3 -m pytest --full-trace -v
-          docker stop nekko-api-container
-          docker rm nekko-api-container
