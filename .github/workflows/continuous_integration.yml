@@ -49,7 +49,7 @@ jobs:
         run: |
           mkdir -p models
           curl -L https://huggingface.co/lmstudio-community/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q6_K.gguf \
-          -o models/SmolLM2-135M-Instruct-Q6_K.gguf
+          -o ${MODEL}
           python3 -m llama_cpp.server --model ${MODEL} &
       - name: Run tests
         run: |
