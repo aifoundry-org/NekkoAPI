@@ -43,5 +43,17 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install -e ".[all]"
+      - name: Start a server
+        env:
+          MODEL: "models/SmolLM2-135M-Instruct-Q6_K.gguf"
+        run: |
+          mkdir -p models
+          curl -L https://huggingface.co/lmstudio-community/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q6_K.gguf \
+          -o ${MODEL}
+          python3 -m llama_cpp.server --model ${MODEL} &
       - name: Run tests
-        run: python3 -m pytest --full-trace -v
+        run: |
+          python3 -m pytest --full-trace -v
+      - name: Stop the server
+        if: always()
+        run: pkill -f "llama_cpp.server"
