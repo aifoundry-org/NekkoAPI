@@ -14,7 +14,7 @@ def setup_openai_client():
 def test_openai_completion(setup_openai_client):
     """Test API call and check for 200 OK response."""
     url = "http://localhost:8000/v1/"
-    model = "smolm2-135m"
+    model = "SmolLM2-135M-Instruct-Q6_K.gguf"
     try:
         client = openai.OpenAI(
             base_url=url, api_key=openai.api_key
