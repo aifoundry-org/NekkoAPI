@@ -58,7 +58,7 @@ jobs:
             --name nekko-api-container \
             nekko-api
       - name: Run tests
-        run:
+        run: |
           python3 -m pytest --full-trace -v
           docker stop nekko-api-container
           docker rm nekko-api-container
