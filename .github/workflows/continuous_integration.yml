@@ -50,8 +50,8 @@ jobs:
           curl -L https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q5_K_S.gguf \
           -o models/Llama-3.2-1B-Instruct-Q5_K_S.gguf
           docker run \
-            -v C:/Users/evsei/PycharmProjects/NekkoAPI/models:/app/models \
-            -v C:/Users/evsei/PycharmProjects/NekkoAPI/examples/settings.json:/app/settings.json \
+            -v ./models:/app/models \
+            -v ./examples/settings.json:/app/settings.json \
             --cap-add SYS_RESOURCE \
             -p 8000:8000 \
             -e CONFIG_FILE=settings.json \
