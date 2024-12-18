@@ -43,5 +43,11 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install -e ".[all]"
+      - name: Start a server
+        run: |
+          make docker
+          mkdir -p models
+          make example-models
+          make run-example-docker
       - name: Run tests
         run: python3 -m pytest --full-trace -v
