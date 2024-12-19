@@ -114,41 +114,66 @@ def test_real_model(llama_cpp_model_path):
     output_text = model.detokenize(output, special=True)
     assert output_text == b" over the lazy dog"
 
-def test_real_llama(llama_cpp_model_path):
-    model = llama_cpp.Llama(
-        llama_cpp_model_path,
+def build_model_with_params(path, **kwargs):
+    return llama_cpp.Llama(
+        path,
         n_ctx=32,
         n_batch=32,
         n_ubatch=32,
         n_threads=multiprocessing.cpu_count(),
         n_threads_batch=multiprocessing.cpu_count(),
+        **kwargs
+    )
+
+def build_output_from_model(
+    model: llama_cpp.Llama,
+    prompt: str,
+    **kwargs
+):
+    return model.create_completion(
+        prompt=prompt,
+        max_tokens=4,
+        top_k=50,
+        top_p=0.9,
+        temperature=0.8,
+        **kwargs
+    )
+
+def test_presence_penalty(llama_cpp_model_path):
+    model = build_model_with_params(
+        llama_cpp_model_path,
         logits_all=False,
         flash_attn=True,
     )
 
-    output = model.create_completion(
+    output = build_output_from_model(
+        model=model,
+        prompt="The quick brown fox jumps",
+        presence_penalty=2.0
+    )
+
+    assert output is not None
+
+def test_real_llama(llama_cpp_model_path):
+    model = build_model_with_params(
+        llama_cpp_model_path,
+        logits_all=False,
+        flash_attn=True,
+    )
+
+    assert build_output_from_model(
+        model,
         "The quick brown fox jumps",
-        max_tokens=4,
-        top_k=50,
-        top_p=0.9,
-        temperature=0.8,
-        seed=1337
-    )
-    assert output["choices"][0]["text"] == " over the lazy dog"
-
-
-    output = model.create_completion(
-        "The capital of france is paris, 'true' or 'false'?:\n",
-        max_tokens=4,
-        top_k=50,
-        top_p=0.9,
-        temperature=0.8,
         seed=1337,
-        grammar=llama_cpp.LlamaGrammar.from_string("""
-root ::= "true" | "false"
-""")
-    )
-    assert output["choices"][0]["text"] == "true"
+    )["choices"][0]["text"] == " over the lazy dog"
+
+    assert build_output_from_model(
+        model,
+        "The capital of france is paris, 'true' or 'false'?:\n",
+        seed=1337,
+        grammar=llama_cpp.LlamaGrammar.from_string(
+            'root ::= "true" | "false"'
+        ))["choices"][0]["text"] == "true"
 
     suffix = b"rot"
     tokens = model.tokenize(suffix, add_bos=True, special=True)
@@ -161,58 +186,40 @@ root ::= "true" | "false"
         [logit_processor_func]
     )
 
-    output = model.create_completion(
+    assert build_output_from_model(
+        model,
         "The capital of france is par",
-        max_tokens=4,
-        top_k=50,
-        top_p=0.9,
-        temperature=0.8,
         seed=1337,
         logits_processor=logit_processors
-    )
-    assert output["choices"][0]["text"].lower().startswith("rot")
+    )["choices"][0]["text"].lower().startswith("rot")
 
     model.set_seed(1337)
 
+    grammar_string = "root ::= " + ' | '.join(list(map(lambda x : f'"{x}"', range(1, 11))))
+
     state = model.save_state()
+    grammar = grammar=llama_cpp.LlamaGrammar.from_string(grammar_string)
+    prompt = "Pick a number from 1 to 10?:\n"
 
-    output = model.create_completion(
-        "Pick a number from 1 to 10?:\n",
-        max_tokens=4,
-        top_k=50,
-        top_p=0.9,
-        temperature=0.8,
-        grammar=llama_cpp.LlamaGrammar.from_string("""
-root ::= "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
-""")
-    )
-    number_1 = output["choices"][0]["text"]
+    number_1 = build_output_from_model(
+        model,
+        prompt,
+        grammar=grammar
+    )["choices"][0]["text"]
 
-    output = model.create_completion(
-        "Pick a number from 1 to 10?:\n",
-        max_tokens=4,
-        top_k=50,
-        top_p=0.9,
-        temperature=0.8,
-        grammar=llama_cpp.LlamaGrammar.from_string("""
-root ::= "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
-""")
-    )
-    number_2 = output["choices"][0]["text"]
+    number_2 = build_output_from_model(
+        model,
+        prompt,
+        grammar=grammar
+    )["choices"][0]["text"]
 
     model.load_state(state)
 
-    output = model.create_completion(
-        "Pick a number from 1 to 10?:\n",
-        max_tokens=4,
-        top_k=50,
-        top_p=0.9,
-        temperature=0.8,
-        grammar=llama_cpp.LlamaGrammar.from_string("""
-root ::= "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10"
-""")
-    )
-    number_3 = output["choices"][0]["text"]
+    number_3 = build_output_from_model(
+        model,
+        prompt,
+        grammar=grammar
+    )["choices"][0]["text"]
 
     assert number_1 != number_2
     assert number_1 == number_3
