@@ -1,3 +1,4 @@
+import json
 from openai import OpenAI
 
 # model = "llama"
@@ -173,8 +174,32 @@ def example_structured_output():
         print(message.content)
 
 
+def example_logprobs():
+    messages = [
+        {
+            "role": "system",
+            "content": "You are a helpful AI assitant named Nekko."
+        },
+        {
+            "role": "user",
+            "content": "What is the highest mountain? Answer with a single word."
+        }
+    ]
+
+    completion = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        max_completion_tokens=20,
+        logprobs=True,
+        top_logprobs=3
+    )
+
+    logprobs = completion.choices[0].logprobs
+    print(json.dumps(logprobs.model_dump()))
+
+
 def main():
-    example_tool_calls()
+    example_logprobs()
 
 
 if __name__ == "__main__":
