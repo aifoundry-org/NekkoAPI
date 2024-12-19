@@ -45,6 +45,68 @@ def example_simple():
     print('\n')
 
 
+def example_tool_calls():
+    weather = "Steady light rain this evening. Showers continuing overnight. Low 44F. Winds SSW at 10 to 20 mph. Chance of rain 80%."
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "description": "Display weather forecast on a wall",
+                "name": "display_weather",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "temperature": {
+                        "type": "number",
+                      },
+                      "wind_speed": {
+                        "type": "number"
+                      },
+                      "rain": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "temperature",
+                      "wind_speed",
+                      "rain"
+                    ],
+                    "additionalProperties": False
+                }
+            }
+        }
+    ]
+
+    messages = [
+        {
+            "role": "system",
+            "content": "You are a helpful AI assitant named Nekko." \
+        },
+        {
+            "role": "user",
+            "content": f"Please display weather forecast using `display_weather` function." +
+                f"The input is bellow: {weather}"
+        }
+    ]
+
+    completion = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        tools=tools,
+        tool_choice={
+            "type": "function",
+            "function": {"name": "display_weather"}
+        },
+    )
+
+    message = completion.choices[0].message
+    if message.content is not None:
+        print(message.content)
+    if message.tool_calls is not None:
+        for tool_call in message.tool_calls:
+            print(f"TOOL_CALL {tool_call.function.name}({tool_call.function.arguments})")
+
+
 def example_structured_output():
     weather = """
     Steady light rain this evening.
@@ -112,7 +174,7 @@ def example_structured_output():
 
 
 def main():
-    example_structured_output()
+    example_tool_calls()
 
 
 if __name__ == "__main__":
