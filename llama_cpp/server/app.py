@@ -492,6 +492,15 @@ async def create_chat_completion(
             else body.logit_bias
         )
 
+    # LLama.cpp doesn't make distinction between "json_object" and "json_schema"
+    # types.
+    # Rename "json_schema" into "schema" to avoid touching llama.cpp
+    if body.response_format is not None:
+      if body.response_format["json_schema"] is not None:
+         kwargs["response_format"]["type"] = "json_object"
+         kwargs["response_format"]["schema"] = body.response_format["json_schema"].get("schema")
+         del kwargs["response_format"]["json_schema"]
+
     if body.grammar is not None:
         kwargs["grammar"] = llama_cpp.LlamaGrammar.from_string(body.grammar)
 
