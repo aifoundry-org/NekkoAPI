@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import List, Optional, Union, Dict
-from typing_extensions import TypedDict, Literal
+from typing import List, Optional, Union, Dict, Any
+from typing_extensions import TypedDict, Literal, NotRequired
 
 from pydantic import BaseModel, Field
 
@@ -100,6 +100,38 @@ grammar = Field(
     default=None,
     description="A CBNF grammar (as string) to be used for formatting the model's output.",
 )
+
+JsonType = Union[None, int, str, bool, List[Any], Dict[str, Any]]
+
+
+class FormatJsonSchema(TypedDict):
+    description: Optional[str] = Field(
+        default=None,
+        description="A description of what the response format is for."
+    )
+    name: str = Field(description="The name of the response format.")
+    schema: NotRequired[JsonType] = Field(
+        default=None, description="The schema for the response format, described as a JSON Schema object."
+    )
+    strict: Optional[bool] = Field(
+        default=False,
+        description="Whether to enable strict schema adherence when generating the output. (ignored)"
+    )
+
+
+class ResponseFormatText(TypedDict):
+    type: Literal["text"]
+
+
+class ResponseFormatJsonObject(TypedDict):
+    type: Literal["json_object"]
+
+
+# TODO: use the type of JsonSchema to describe JsonSchema (yeah, it
+# is self referential...)
+class ResponseFormatJsonSchema(TypedDict):
+    type: Literal["json_schema"]
+    json_schema: JsonType
 
 
 class CreateCompletionRequest(BaseModel):
@@ -232,8 +264,9 @@ class CreateChatCompletionRequest(BaseModel):
     frequency_penalty: Optional[float] = frequency_penalty_field
     logit_bias: Optional[Dict[str, float]] = Field(None)
     seed: Optional[int] = Field(None)
-    response_format: Optional[llama_cpp.ChatCompletionRequestResponseFormat] = Field(
+    response_format: Optional[Union[ResponseFormatText, ResponseFormatJsonObject, ResponseFormatJsonSchema]] = Field(
         default=None,
+        description="An object specifying the format that the model must output."
     )
 
     model: str = model_field
@@ -293,7 +326,8 @@ class TokenizeInputRequest(BaseModel):
 class TokenizeInputResponse(BaseModel):
     tokens: List[int] = Field(description="A list of tokens.")
 
-    model_config = {"json_schema_extra": {"example": {"tokens": [123, 321, 222]}}}
+    model_config = {"json_schema_extra": {
+        "example": {"tokens": [123, 321, 222]}}}
 
 
 class TokenizeInputCountResponse(BaseModel):
@@ -306,7 +340,8 @@ class DetokenizeInputRequest(BaseModel):
     model: Optional[str] = model_field
     tokens: List[int] = Field(description="A list of toekns to detokenize.")
 
-    model_config = {"json_schema_extra": {"example": [{"tokens": [123, 321, 222]}]}}
+    model_config = {"json_schema_extra": {
+        "example": [{"tokens": [123, 321, 222]}]}}
 
 
 class DetokenizeInputResponse(BaseModel):

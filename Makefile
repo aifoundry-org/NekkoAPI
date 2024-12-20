@@ -48,6 +48,9 @@ docker:
 run-server:
 	python3 -m llama_cpp.server --model ${MODEL}
 
+run:
+	python3 -m llama_cpp.server --config_file=./examples/settings.json
+
 run-example-docker: example-models
 	docker run \
 	  -v ./models:/app/models \
