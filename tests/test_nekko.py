@@ -19,7 +19,8 @@ def setup_openai_client():
         constant_data.TestData.CHAT_COMPLETION_FREQUENCY_PENALTY
     ]
 )
-def test_openai_completion(model, messages, max_completion_tokens, stop, top_p, stream_option, frequency_penalty):
+def test_openai_completion(setup_openai_client,
+                           model, messages, max_completion_tokens, stop, top_p, stream_option, frequency_penalty):
     """Test API call and check for 200 OK response."""
     url = "http://localhost:8000/v1/"
 
