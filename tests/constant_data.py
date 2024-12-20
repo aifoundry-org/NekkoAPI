@@ -14,29 +14,3 @@ class ConstantData:
             "content": "What should I see in Japan? Thanks!"
         }
     ]
-
-
-class TestData:
-    """
-    Contains data for specific tests
-    """
-    CHAT_COMPLETION_BASIC = (
-        "models/SmolLM2-135M-Instruct-Q6_K.gguf",  # Model
-        ConstantData.MESSAGE,  # Messages
-        200,  # Max completion tokens
-        ["4.", "sushi"],  # Stop tokens
-        0.3,  # Top_p
-        True,  # Stream option
-        None  # frequency_penalty
-    )
-
-    CHAT_COMPLETION_FREQUENCY_PENALTY = (
-        "models/SmolLM2-135M-Instruct-Q6_K.gguf",  # Model
-        ConstantData.MESSAGE,  # Messages
-        200,  # Max completion tokens
-        ["4.", "sushi"],  # Stop tokens
-        0.3,  # Top_p
-        True,  # Stream option
-        2.0  # frequency_penalty
-    )
-
