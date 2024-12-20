@@ -13,7 +13,8 @@ CHAT_COMPLETION_BASIC = (
     ["4.", "sushi"],  # Stop tokens
     0.3,  # Top_p
     True,  # Stream option
-    False  # frequency_penalty
+    False, # frequency_penalty,
+    False  # presence_penalty
 )
 
 CHAT_COMPLETION_FREQUENCY_PENALTY = (
@@ -23,7 +24,19 @@ CHAT_COMPLETION_FREQUENCY_PENALTY = (
     ["4.", "sushi"],  # Stop tokens
     0.3,  # Top_p
     True,  # Stream option
-    2.0  # frequency_penalty
+    2.0,  # frequency_penalty
+    False # presence_penalty
+)
+
+CHAT_COMPLETION_PRESENCE_PENALTY = (
+    "models/SmolLM2-135M-Instruct-Q6_K.gguf",  # Model
+    ConstantData.MESSAGE,  # Messages
+    200,  # Max completion tokens
+    ["4.", "sushi"],  # Stop tokens
+    0.3,  # Top_p
+    True,  # Stream option
+    False,  # frequency_penalty
+    2.0     # presence_penalty
 )
 
 
@@ -36,14 +49,17 @@ def setup_openai_client():
 
 
 @pytest.mark.parametrize(
-    "model, messages, max_completion_tokens, stop, top_p, stream_option, frequency_penalty",
+    "model, messages, max_completion_tokens, stop, top_p, stream_option, frequency_penalty, presence_penalty",
     [
         CHAT_COMPLETION_BASIC,
-        CHAT_COMPLETION_FREQUENCY_PENALTY
+        CHAT_COMPLETION_FREQUENCY_PENALTY,
+        CHAT_COMPLETION_PRESENCE_PENALTY,
     ]
 )
-def test_openai_completion(setup_openai_client,
-                           model, messages, max_completion_tokens, stop, top_p, stream_option, frequency_penalty):
+def test_openai_completion(setup_openai_client, model,
+                           messages, max_completion_tokens,
+                           stop, top_p, stream_option,
+                           frequency_penalty, presence_penalty):
     """Test API call and check for 200 OK response."""
     url = "http://localhost:8000/v1/"
 
@@ -60,6 +76,7 @@ def test_openai_completion(setup_openai_client,
             top_p=top_p,
             stream=stream_option,
             frequency_penalty=frequency_penalty,
+            presence_penalty=presence_penalty,
         )
 
         # Assert the response is OK
