@@ -14,7 +14,8 @@ CHAT_COMPLETION_BASIC = (
     0.3,  # Top_p
     True,  # Stream option
     False, # frequency_penalty,
-    False  # presence_penalty
+    False, # presence_penalty
+    None,  # seed
 )
 
 CHAT_COMPLETION_FREQUENCY_PENALTY = (
@@ -24,8 +25,9 @@ CHAT_COMPLETION_FREQUENCY_PENALTY = (
     ["4.", "sushi"],  # Stop tokens
     0.3,  # Top_p
     True,  # Stream option
-    2.0,  # frequency_penalty
-    False # presence_penalty
+    2.0,   # frequency_penalty
+    False, # presence_penalty
+    None,  # seed
 )
 
 CHAT_COMPLETION_PRESENCE_PENALTY = (
@@ -36,7 +38,20 @@ CHAT_COMPLETION_PRESENCE_PENALTY = (
     0.3,  # Top_p
     True,  # Stream option
     False,  # frequency_penalty
-    2.0     # presence_penalty
+    2.0,    # presence_penalty
+    None,   # seed
+)
+
+CHAT_COMPLETION_SEED = (
+    "models/SmolLM2-135M-Instruct-Q6_K.gguf",  # Model
+    ConstantData.MESSAGE,  # Messages
+    200,  # Max completion tokens
+    ["4.", "sushi"],  # Stop tokens
+    0.3,  # Top_p
+    True,  # Stream option
+    False,  # frequency_penalty
+    False,  # presence_penalty
+    1337,   # seed
 )
 
 
@@ -49,17 +64,19 @@ def setup_openai_client():
 
 
 @pytest.mark.parametrize(
-    "model, messages, max_completion_tokens, stop, top_p, stream_option, frequency_penalty, presence_penalty",
+    "model, messages, max_completion_tokens, stop, top_p, stream_option, frequency_penalty, presence_penalty, seed",
     [
         CHAT_COMPLETION_BASIC,
         CHAT_COMPLETION_FREQUENCY_PENALTY,
         CHAT_COMPLETION_PRESENCE_PENALTY,
+        CHAT_COMPLETION_SEED
     ]
 )
 def test_openai_completion(setup_openai_client, model,
                            messages, max_completion_tokens,
                            stop, top_p, stream_option,
-                           frequency_penalty, presence_penalty):
+                           frequency_penalty, presence_penalty,
+                           seed):
     """Test API call and check for 200 OK response."""
     url = "http://localhost:8000/v1/"
 
@@ -77,6 +94,7 @@ def test_openai_completion(setup_openai_client, model,
             stream=stream_option,
             frequency_penalty=frequency_penalty,
             presence_penalty=presence_penalty,
+            seed=seed
         )
 
         # Assert the response is OK
