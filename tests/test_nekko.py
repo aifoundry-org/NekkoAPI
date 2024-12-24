@@ -9,29 +9,26 @@ Data for specific tests
 
 CHAT_COMPLETION_BASIC = {
     "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE,
+    "messages": ConstantData.MESSAGE_BASIC,
     "kwargs": {
-        "max_completion_tokens": 200,
-        "stop": ["4.", "sushi"],
+        "max_completion_tokens": 200
     }
 }
 
 CHAT_COMPLETION_FREQUENCY_PENALTY = {
     "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE,
+    "messages": ConstantData.MESSAGE_BASIC,
     "kwargs": {
         "max_completion_tokens": 200,
-        "stop": ["4.", "sushi"],
         "frequency_penalty": 2.0,
     }
 }
 
 CHAT_COMPLETION_PRESENCE_PENALTY = {
     "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE,
+    "messages": ConstantData.MESSAGE_BASIC,
     "kwargs": {
         "max_completion_tokens": 200,
-        "stop": ["4.", "sushi"],
         "presence_penalty": 2.0,
     }
 }
@@ -54,7 +51,7 @@ def setup_openai_client():
     ]
 )
 def test_openai_completion_message(setup_openai_client, test_data):
-    """Test completion request and check the recived message."""
+    """Test completion request and check the received message."""
     url = "http://localhost:8000/v1/"
 
     try:
@@ -70,6 +67,67 @@ def test_openai_completion_message(setup_openai_client, test_data):
 
         # Assert the response is OK
         assert completion.choices[0].message is not None
+
+    except openai.OpenAIError as e:
+        pytest.fail(f"OpenAI API call failed: {e}")
+
+
+CHAT_COMPLETION_LOGPROBS_3 = {
+    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "messages": ConstantData.MESSAGE_LOGPROBS,
+    "logprobs": True,
+    "kwargs": {
+        "max_completion_tokens": 200,
+        "top_logprobs": 3
+    }
+}
+
+CHAT_COMPLETION_LOGPROBS_NULL = {
+    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "messages": ConstantData.MESSAGE_LOGPROBS,
+    "logprobs": False,
+    "kwargs": {
+        "max_completion_tokens": 200
+    }
+}
+
+
+@pytest.mark.parametrize(
+    "test_data",
+    [
+        CHAT_COMPLETION_LOGPROBS_3,
+        CHAT_COMPLETION_LOGPROBS_NULL
+    ]
+)
+def test_openai_completion_logpobs(setup_openai_client, test_data):
+    """Test completion request and check the logprobs."""
+    url = "http://localhost:8000/v1/"
+
+    try:
+        client = openai.OpenAI(
+            base_url=url, api_key=openai.api_key
+        )
+        # Make a basic completion request
+        completion = client.chat.completions.create(
+            model=test_data["model"],
+            messages=test_data["messages"],
+            logprobs=test_data["logprobs"],
+            **test_data["kwargs"]
+        )
+        logprobs = completion.choices[0].logprobs
+
+        # Check the logprobs data
+        if not test_data["logprobs"]:
+            assert logprobs is None
+        else:
+            assert logprobs is not None
+            for prob in logprobs.content:
+                assert prob.token is not None
+                assert type(prob.logprob) == float
+                assert len(prob.top_logprobs) == test_data["kwargs"]["top_logprobs"]
+                for top_prob in prob.top_logprobs:
+                    assert top_prob.token is not None
+                    assert type(top_prob.logprob) == float
 
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
