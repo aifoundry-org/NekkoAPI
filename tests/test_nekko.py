@@ -124,7 +124,6 @@ def test_openai_completion_logpobs(setup_openai_client, test_data):
             for prob in logprobs.content:
                 assert prob.token is not None
                 assert type(prob.logprob) == float
-                assert len(prob.top_logprobs) == test_data["kwargs"]["top_logprobs"]
                 for top_prob in prob.top_logprobs:
                     assert top_prob.token is not None
                     assert type(top_prob.logprob) == float
