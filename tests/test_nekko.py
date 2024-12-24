@@ -6,38 +6,35 @@ from constant_data import ConstantData
 """
 Data for specific tests
 """
-CHAT_COMPLETION_BASIC = (
-    "models/SmolLM2-135M-Instruct-Q6_K.gguf",  # Model
-    ConstantData.MESSAGE,  # Messages
-    200,  # Max completion tokens
-    ["4.", "sushi"],  # Stop tokens
-    0.3,  # Top_p
-    True,  # Stream option
-    False, # frequency_penalty,
-    False  # presence_penalty
-)
 
-CHAT_COMPLETION_FREQUENCY_PENALTY = (
-    "models/SmolLM2-135M-Instruct-Q6_K.gguf",  # Model
-    ConstantData.MESSAGE,  # Messages
-    200,  # Max completion tokens
-    ["4.", "sushi"],  # Stop tokens
-    0.3,  # Top_p
-    True,  # Stream option
-    2.0,  # frequency_penalty
-    False # presence_penalty
-)
+CHAT_COMPLETION_BASIC = {
+    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "messages": ConstantData.MESSAGE,
+    "kwargs": {
+        "max_completion_tokens": 200,
+        "stop": ["4.", "sushi"],
+    }
+}
 
-CHAT_COMPLETION_PRESENCE_PENALTY = (
-    "models/SmolLM2-135M-Instruct-Q6_K.gguf",  # Model
-    ConstantData.MESSAGE,  # Messages
-    200,  # Max completion tokens
-    ["4.", "sushi"],  # Stop tokens
-    0.3,  # Top_p
-    True,  # Stream option
-    False,  # frequency_penalty
-    2.0     # presence_penalty
-)
+CHAT_COMPLETION_FREQUENCY_PENALTY = {
+    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "messages": ConstantData.MESSAGE,
+    "kwargs": {
+        "max_completion_tokens": 200,
+        "stop": ["4.", "sushi"],
+        "frequency_penalty": 2.0,
+    }
+}
+
+CHAT_COMPLETION_PRESENCE_PENALTY = {
+    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "messages": ConstantData.MESSAGE,
+    "kwargs": {
+        "max_completion_tokens": 200,
+        "stop": ["4.", "sushi"],
+        "presence_penalty": 2.0,
+    }
+}
 
 
 @pytest.fixture(scope="session")
@@ -49,18 +46,15 @@ def setup_openai_client():
 
 
 @pytest.mark.parametrize(
-    "model, messages, max_completion_tokens, stop, top_p, stream_option, frequency_penalty, presence_penalty",
+    "test_data",
     [
         CHAT_COMPLETION_BASIC,
         CHAT_COMPLETION_FREQUENCY_PENALTY,
         CHAT_COMPLETION_PRESENCE_PENALTY,
     ]
 )
-def test_openai_completion(setup_openai_client, model,
-                           messages, max_completion_tokens,
-                           stop, top_p, stream_option,
-                           frequency_penalty, presence_penalty):
-    """Test API call and check for 200 OK response."""
+def test_openai_completion_message(setup_openai_client, test_data):
+    """Test completion request and check the recived message."""
     url = "http://localhost:8000/v1/"
 
     try:
@@ -68,19 +62,14 @@ def test_openai_completion(setup_openai_client, model,
             base_url=url, api_key=openai.api_key
         )
         # Make a basic completion request
-        stream = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            max_completion_tokens=max_completion_tokens,
-            stop=stop,
-            top_p=top_p,
-            stream=stream_option,
-            frequency_penalty=frequency_penalty,
-            presence_penalty=presence_penalty,
+        completion = client.chat.completions.create(
+            model=test_data["model"],
+            messages=test_data["messages"],
+            **test_data["kwargs"]
         )
 
         # Assert the response is OK
-        assert stream.response.status_code == 200
+        assert completion.choices[0].message is not None
 
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
