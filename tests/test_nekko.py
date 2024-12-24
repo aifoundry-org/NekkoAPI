@@ -14,7 +14,7 @@ CHAT_COMPLETION_BASIC = (
     0.3,  # Top_p
     True,  # Stream option
     False, # frequency_penalty,
-    False, # presence_penalty
+    False  # presence_penalty
 )
 
 CHAT_COMPLETION_FREQUENCY_PENALTY = (
@@ -38,6 +38,7 @@ CHAT_COMPLETION_PRESENCE_PENALTY = (
     False,  # frequency_penalty
     2.0     # presence_penalty
 )
+
 
 @pytest.fixture(scope="session")
 def setup_openai_client():
