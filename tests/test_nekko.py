@@ -33,6 +33,15 @@ CHAT_COMPLETION_PRESENCE_PENALTY = {
     }
 }
 
+CHAT_COMPLETION_LOGITBIAS = {
+    "model": "models/Llama-3.2-1B-Instruct-Q5_K_S.gguf",
+    "messages": ConstantData.MESSAGE_BASIC,
+    "kwargs": {
+        "max_completion_tokens": 200,
+        "logit_bias": {976: -100, 48887: -100, 328: -100, 125280:-100}
+    }
+}
+
 
 @pytest.fixture(scope="session")
 def setup_openai_client():
@@ -48,6 +57,7 @@ def setup_openai_client():
         CHAT_COMPLETION_BASIC,
         CHAT_COMPLETION_FREQUENCY_PENALTY,
         CHAT_COMPLETION_PRESENCE_PENALTY,
+        CHAT_COMPLETION_LOGITBIAS
     ]
 )
 def test_openai_completion_message(setup_openai_client, test_data):
