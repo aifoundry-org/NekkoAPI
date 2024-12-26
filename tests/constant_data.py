@@ -1,4 +1,5 @@
 class ConstantData:
+    MODEL_NAME = 'models/SmolLM2-135M-Instruct-Q6_K.gguf'
     """
     Contains all the constant data that can be used across the framework
     """
@@ -23,5 +24,16 @@ class ConstantData:
         {
             "role": "user",
             "content": "What is the highest mountain? Answer with a single word."
+        }
+    ]
+
+    MESSAGE_STREAM_OPTIONS = [
+        {
+            "role": "system",
+            "content": "You are a helpful AI assitant named Nekko."
+        },
+        {
+            'role': 'user',
+            'content': "What is your name? Answer with a single word."
         }
     ]

@@ -8,7 +8,7 @@ Data for specific tests
 """
 
 CHAT_COMPLETION_BASIC = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "model": ConstantData.MODEL_NAME,
     "messages": ConstantData.MESSAGE_BASIC,
     "kwargs": {
         "max_completion_tokens": 200
@@ -16,7 +16,7 @@ CHAT_COMPLETION_BASIC = {
 }
 
 CHAT_COMPLETION_FREQUENCY_PENALTY = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "model": ConstantData.MODEL_NAME,
     "messages": ConstantData.MESSAGE_BASIC,
     "kwargs": {
         "max_completion_tokens": 200,
@@ -25,7 +25,7 @@ CHAT_COMPLETION_FREQUENCY_PENALTY = {
 }
 
 CHAT_COMPLETION_PRESENCE_PENALTY = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "model": ConstantData.MODEL_NAME,
     "messages": ConstantData.MESSAGE_BASIC,
     "kwargs": {
         "max_completion_tokens": 200,
@@ -73,7 +73,7 @@ def test_openai_completion_message(setup_openai_client, test_data):
 
 
 CHAT_COMPLETION_LOGPROBS_3 = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "model": ConstantData.MODEL_NAME,
     "messages": ConstantData.MESSAGE_LOGPROBS,
     "logprobs": True,
     "kwargs": {
@@ -83,7 +83,7 @@ CHAT_COMPLETION_LOGPROBS_3 = {
 }
 
 CHAT_COMPLETION_LOGPROBS_NULL = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "model": ConstantData.MODEL_NAME,
     "messages": ConstantData.MESSAGE_LOGPROBS,
     "logprobs": False,
     "kwargs": {
@@ -127,6 +127,53 @@ def test_openai_completion_logpobs(setup_openai_client, test_data):
                 for top_prob in prob.top_logprobs:
                     assert top_prob.token is not None
                     assert type(top_prob.logprob) == float
+
+    except openai.OpenAIError as e:
+        pytest.fail(f"OpenAI API call failed: {e}")
+
+
+CHAT_COMPLETION_STREAM_OPTIONS_ON = {
+    "model": ConstantData.MODEL_NAME,
+    "messages": ConstantData.MESSAGE_STREAM_OPTIONS,
+    "stream": True,
+    "stream_options": {"include_usage": True},
+}
+
+CHAT_COMPLETION_STREAM_OPTIONS_OFF = {
+    "model": ConstantData.MODEL_NAME,
+    "messages": ConstantData.MESSAGE_STREAM_OPTIONS,
+    "stream": True,
+    "stream_options": None
+}
+
+
+@pytest.mark.parametrize(
+    "test_data",
+    [
+        CHAT_COMPLETION_STREAM_OPTIONS_ON,
+        CHAT_COMPLETION_STREAM_OPTIONS_OFF
+    ]
+)
+def test_stream_options(setup_openai_client, test_data):
+    """Test completion request and check the stream_options."""
+    url = "http://localhost:8000/v1/"
+    try:
+        client = openai.OpenAI(
+            base_url=url, api_key=openai.api_key
+        )
+
+        stream = client.chat.completions.create(
+            model=test_data["model"],
+            messages=test_data["messages"],
+            stream=test_data['stream'],
+            stream_options=test_data['stream_options']
+        )
+
+        last_usage = None
+        for chunk in stream:
+            last_usage = chunk.usage
+
+        assert (last_usage is None) == (test_data['stream_options'] is None)
 
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
