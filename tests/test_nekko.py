@@ -1,3 +1,4 @@
+import json
 import uuid
 import openai
 import pytest
@@ -222,6 +223,8 @@ def test_chat_response(setup_openai_client):
     )
     finish_reason = completion.choices[0].finish_reason
     assert finish_reason == "length"
+    assert isinstance(completion.choices[0].message.content, str)
+    assert completion.choices[0].message.role == "assistant"
 
     completion = client.chat.completions.create(
         model=model,
@@ -244,7 +247,7 @@ def test_chat_response(setup_openai_client):
                         "open": {"type": "boolean"},
                     },
                     "required": [
-                        "temperature",
+                        "open",
                     ],
                     "additionalProperties": False
                 }
@@ -263,3 +266,39 @@ def test_chat_response(setup_openai_client):
     )
     finish_reason = completion.choices[0].finish_reason
     assert finish_reason == "tool_calls"
+    assert completion.choices[0].message.role == "assistant"
+    assert completion.choices[0].message.content is None
+    tool_call = completion.choices[0].message.tool_calls[0]
+    assert tool_call.type == "function"
+    assert tool_call.function.name == "set_door"
+    assert isinstance(json.loads(tool_call.function.arguments), dict)
+
+    functions = [
+        {
+            "description": "Set door status",
+            "name": "set_door",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "open": {"type": "boolean"},
+                },
+                "required": [
+                    "open",
+                ],
+                "additionalProperties": False
+            }
+        }
+    ]
+
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": "Open the door"}],
+        functions=functions,
+        function_call={"name": "set_door", },
+    )
+
+    assert completion.choices[0].message.role == "assistant"
+    assert completion.choices[0].message.content is None
+    function_call = completion.choices[0].message.function_call
+    assert function_call.name == "set_door"
+    assert isinstance(json.loads(function_call.arguments), dict)
