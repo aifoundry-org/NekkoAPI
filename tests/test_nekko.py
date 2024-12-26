@@ -225,6 +225,7 @@ def test_chat_response(setup_openai_client):
     assert finish_reason == "length"
     assert isinstance(completion.choices[0].message.content, str)
     assert completion.choices[0].message.role == "assistant"
+    assert completion.choices[0].index == 0
 
     completion = client.chat.completions.create(
         model=model,
