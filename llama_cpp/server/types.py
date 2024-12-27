@@ -134,6 +134,13 @@ class ResponseFormatJsonSchema(TypedDict):
     json_schema: JsonType
 
 
+class StreamOptions(BaseModel):
+    include_usage: Optional[bool] = Field(
+        default=None,
+        description="If true, send additional chunk before [DONE] with usage information."
+    )
+
+
 class CreateCompletionRequest(BaseModel):
     prompt: Union[str, List[str]] = Field(
         default="", description="The prompt to generate completions for."
@@ -259,6 +266,7 @@ class CreateChatCompletionRequest(BaseModel):
     min_p: float = min_p_field
     stop: Optional[Union[str, List[str]]] = stop_field
     stream: bool = stream_field
+    stream_options: Optional[StreamOptions] = Field(None)
     presence_penalty: Optional[float] = presence_penalty_field
     frequency_penalty: Optional[float] = frequency_penalty_field
     logit_bias: Optional[Dict[str, float]] = Field(None)

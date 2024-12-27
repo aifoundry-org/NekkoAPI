@@ -227,6 +227,7 @@ def test_seed(setup_openai_client, seed=1337):
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
 
+
 def test_chat_max_tokens(setup_openai_client):
     model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
     url = "http://localhost:8000/v1/"
@@ -244,6 +245,76 @@ def test_chat_max_tokens(setup_openai_client):
                     if chunk.choices[0].delta.content is not None]
 
     assert len(token_chunks) == 1
+
+
+def test_chat_stream_options(setup_openai_client):
+    model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
+    url = "http://localhost:8000/v1/"
+    client = openai.OpenAI(base_url=url, api_key=openai.api_key)
+
+    completion_chunks = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": "Tell me a story"}],
+        max_tokens=3,
+        stream=True,
+        stream_options={"include_usage": True}
+    )
+
+    chunks = list(completion_chunks)
+
+    token_chunks = [chunk for chunk in chunks
+                    if chunk.choices and chunk.choices[0].delta.content is not None]
+    assert len(token_chunks) == 3
+    for token_chunk in token_chunks:
+        assert token_chunk.usage is None
+    usage = chunks[-1].usage
+    assert usage.prompt_tokens == 34
+    assert usage.completion_tokens == 3
+    assert usage.total_tokens == 37
+
+
+def test_chat_stream_options_tools(setup_openai_client):
+    model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
+    url = "http://localhost:8000/v1/"
+    client = openai.OpenAI(base_url=url, api_key=openai.api_key)
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "description": "Set door status",
+                "name": "set_door",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "open": {"type": "boolean"},
+                    },
+                    "required": [
+                        "open",
+                    ],
+                    "additionalProperties": False
+                }
+            }
+        }
+    ]
+
+    completion_chunks = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": "Close the door"}],
+        tools=tools,
+        tool_choice={
+            "type": "function",
+            "function": {"name": "set_door"}
+        },
+        stream=True,
+        stream_options={"include_usage": True}
+    )
+
+    chunks = list(completion_chunks)
+
+    usage = chunks[-1].usage
+    assert usage.prompt_tokens == 33
+    assert usage.completion_tokens > 0
+    assert usage.total_tokens == usage.prompt_tokens + usage.completion_tokens
 
 
 # TODO: refactor into separate tests?

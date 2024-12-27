@@ -310,8 +310,19 @@ def _convert_text_completion_to_chat(
 
 def _convert_text_completion_chunks_to_chat(
     chunks: Iterator[llama_types.CreateCompletionStreamResponse],
+    usage: bool = False,
 ) -> Iterator[llama_types.ChatCompletionChunk]:
     for i, chunk in enumerate(chunks):
+        if usage and "usage" in chunk:
+            yield {
+                "id": "chat" + chunk["id"],
+                "model": chunk["model"],
+                "created": chunk["created"],
+                "object": "chat.completion.chunk",
+                "choices": [],
+                "usage": chunk["usage"]
+            }
+            break
         if i == 0:
             yield {
                 "id": "chat" + chunk["id"],
@@ -357,12 +368,13 @@ def _convert_completion_to_chat(
         Iterator[llama_types.CreateCompletionStreamResponse],
     ],
     stream: bool = False,
+    usage: bool = False,
 ) -> Union[
     llama_types.CreateChatCompletionResponse, Iterator[llama_types.ChatCompletionChunk]
 ]:
     if stream:
         chunks: Iterator[llama_types.CreateCompletionStreamResponse] = completion_or_chunks  # type: ignore
-        return _convert_text_completion_chunks_to_chat(chunks)
+        return _convert_text_completion_chunks_to_chat(chunks, usage)
     else:
         completion: llama_types.Completion = completion_or_chunks  # type: ignore
         return _convert_text_completion_to_chat(completion)
@@ -375,6 +387,7 @@ def _convert_completion_to_chat_function(
         Iterator[llama_types.CreateCompletionStreamResponse],
     ],
     stream: bool,
+    usage: bool = None,
 ):
     if not stream:
         completion: llama_types.CreateCompletionResponse = completion_or_chunks  # type: ignore
@@ -426,7 +439,18 @@ def _convert_completion_to_chat_function(
             created = None
             model = None
             tool_id = None
+            usage_chunk = None
             for chunk in chunks:
+                if usage and "usage" in chunk:
+                    usage_chunk = {
+                        "id": "chat" + chunk["id"],
+                        "model": chunk["model"],
+                        "created": chunk["created"],
+                        "object": "chat.completion.chunk",
+                        "choices": [],
+                        "usage": chunk["usage"]
+                    }
+                    break
                 if first:
                     id_ = "chat" + chunk["id"]
                     created = chunk["created"]
@@ -541,6 +565,8 @@ def _convert_completion_to_chat_function(
                         }
                     ],
                 }
+                if usage_chunk:
+                    yield usage_chunk
 
         return _stream_response_to_function_stream(chunks)
 
@@ -684,12 +710,13 @@ def chat_formatter_to_chat_completion_handler(
             grammar=grammar,
             logit_bias=logit_bias,
         )
+        usage = kwargs.get("usage")
         if tool is not None:
             tool_name = tool["function"]["name"]
             return _convert_completion_to_chat_function(
-                tool_name, completion_or_chunks, stream
+                tool_name, completion_or_chunks, stream, usage=usage
             )
-        return _convert_completion_to_chat(completion_or_chunks, stream=stream)
+        return _convert_completion_to_chat(completion_or_chunks, stream=stream, usage=usage)
 
     return chat_completion_handler
 
