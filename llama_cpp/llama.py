@@ -1633,6 +1633,18 @@ class Llama:
                 self.cache[prompt_tokens + completion_tokens] = self.save_state()
                 if self.verbose:
                     print("Llama._create_completion: cache saved", file=sys.stderr)
+            yield {
+                "id": completion_id,
+                "object": "text_completion",
+                "created": created,
+                "model": model_name,
+                "choices": [],
+                "usage": {
+                    "prompt_tokens": len(prompt_tokens),
+                    "completion_tokens": len(completion_tokens),
+                    "total_tokens": len(prompt_tokens) + len(completion_tokens),
+                },
+            } 
             return
 
         if self.cache:
@@ -1954,6 +1966,7 @@ class Llama:
         logit_bias: Optional[Dict[int, float]] = None,
         logprobs: Optional[bool] = None,
         top_logprobs: Optional[int] = None,
+        usage: Optional[bool] = None
     ) -> Union[
         CreateChatCompletionResponse, Iterator[CreateChatCompletionStreamResponse]
     ]:
@@ -2025,6 +2038,7 @@ class Llama:
             logits_processor=logits_processor,
             grammar=grammar,
             logit_bias=logit_bias,
+            usage=usage,
         )
 
     def create_chat_completion_openai_v1(
