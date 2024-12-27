@@ -112,7 +112,7 @@ class CreateChatCompletionResponse(TypedDict):
     object: Literal["chat.completion"]
     created: int
     model: str
-    choices: List["ChatCompletionResponseChoice"]
+    choices: List[ChatCompletionResponseChoice]
     usage: CompletionUsage
 
 
