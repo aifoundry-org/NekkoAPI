@@ -191,6 +191,42 @@ def test_openai_completion_tools(setup_openai_client, test_data):
         pytest.fail(f"OpenAI API call failed: {e}")
 
 
+def get_response(client, **kwargs) -> str:
+    result = str()
+
+    stream = client.chat.completions.create(**kwargs)
+    for chunk in stream:
+        x = chunk.choices[0].delta.content
+        if x is None:
+            continue
+        result += str(x)
+
+    return result
+
+
+def test_seed(setup_openai_client, seed=1337):
+    url = "http://localhost:8000/v1/"
+    try:
+        client = openai.OpenAI(
+            base_url=url, api_key=openai.api_key
+        )
+
+        base_params = {
+            "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+            "messages": ConstantData.MESSAGE_SEED,
+            "stream": True
+        }
+
+        result1 = get_response(client=client, **base_params, seed=seed)
+        result2 = get_response(client=client, **base_params, seed=seed)
+        result3 = get_response(client=client, **base_params, seed=seed+1)
+
+        assert result1 == result2
+        assert result1 != result3
+
+    except openai.OpenAIError as e:
+        pytest.fail(f"OpenAI API call failed: {e}")
+
 def test_chat_max_tokens(setup_openai_client):
     model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
     url = "http://localhost:8000/v1/"
