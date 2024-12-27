@@ -213,7 +213,7 @@ def test_seed(setup_openai_client, seed=1337):
 
         base_params = {
             "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-            "messages": ConstantData.MESSAGE,
+            "messages": ConstantData.MESSAGE_SEED,
             "stream": True
         }
 
