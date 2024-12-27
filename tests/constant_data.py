@@ -5,8 +5,8 @@ class ConstantData:
     MESSAGE_BASIC = [
         {
             "role": "system",
-            "content": "You are a helpful AI assitant named Nekko. " \
-                       "For some reason you like cats. " \
+            "content": "You are a helpful AI assitant named Nekko. "
+                       "For some reason you like cats. "
                        "You always answer in numbered lists, top 3 items only."
         },
         {
@@ -23,5 +23,48 @@ class ConstantData:
         {
             "role": "user",
             "content": "What is the highest mountain? Answer with a single word."
+        }
+    ]
+
+    MESSAGE_TOOLS = [
+        {
+            "role": "system",
+            "content": "You are a helpful AI assitant named Nekko."
+        },
+        {
+            "role": "user",
+            "content": "Please display weather forecast using `display_weather` function."
+                "The input is bellow: Steady light rain this evening. Showers continuing overnight. Low 44F. Winds "
+                "SSW at 10 to 20 mph. Chance of rain 80%."
+        }
+    ]
+
+    TOOLS_FUNCTION = [
+        {
+            "type": "function",
+            "function": {
+                "description": "Display weather forecast on a wall",
+                "name": "display_weather",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "temperature": {
+                        "type": "number",
+                      },
+                      "wind_speed": {
+                        "type": "number"
+                      },
+                      "rain": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "temperature",
+                      "wind_speed",
+                      "rain"
+                    ],
+                    "additionalProperties": False
+                }
+            }
         }
     ]
