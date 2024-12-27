@@ -34,7 +34,7 @@ CHAT_COMPLETION_PRESENCE_PENALTY = {
 }
 
 CHAT_COMPLETION_LOGITBIAS = {
-    "model": "models/Llama-3.2-1B-Instruct-Q5_K_S.gguf",
+    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
     "messages": ConstantData.MESSAGE_BASIC,
     "kwargs": {
         "max_completion_tokens": 200,
@@ -137,6 +137,54 @@ def test_openai_completion_logpobs(setup_openai_client, test_data):
                 for top_prob in prob.top_logprobs:
                     assert top_prob.token is not None
                     assert type(top_prob.logprob) == float
+
+    except openai.OpenAIError as e:
+        pytest.fail(f"OpenAI API call failed: {e}")
+
+
+CHAT_COMPLETION_TOOLS = {
+    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "messages": ConstantData.MESSAGE_TOOLS,
+    "tools": ConstantData.TOOLS_FUNCTION,
+    "tool_choice": {
+        "type": "function",
+        "function": {"name": "display_weather"}
+    },
+    ""
+    "kwargs": {
+        "max_completion_tokens": 200
+
+    }
+}
+
+
+@pytest.mark.parametrize(
+    "test_data",
+    [
+        CHAT_COMPLETION_TOOLS
+    ]
+)
+def test_openai_completion_tools(setup_openai_client, test_data):
+    """Test completion request and check tools."""
+    url = "http://localhost:8000/v1/"
+
+    try:
+        client = openai.OpenAI(
+            base_url=url, api_key=openai.api_key
+        )
+        # Make a completion request
+        completion = client.chat.completions.create(
+            model=test_data["model"],
+            messages=test_data["messages"],
+            tools=test_data["tools"],
+            tool_choice=test_data["tool_choice"],
+            **test_data["kwargs"]
+        )
+
+        tools = completion.choices[0].message.tool_calls
+        for tool in tools:
+            assert tool.type == test_data["tools"][0]["type"]
+            assert tool.function.name == test_data["tools"][0]["function"]["name"]
 
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
