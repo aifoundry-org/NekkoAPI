@@ -4,12 +4,22 @@ class ConstantData:
     """
     MESSAGE_BASIC = [
         {
+            "role": "system",
+            "content": "You are a helpful AI assitant named Nekko. "
+                       "For some reason you like cats. "
+                       "You always answer in numbered lists, top 3 items only."
+        },
+        {
             "role": "user",
             "content": "What should I see in Japan? Thanks!"
         }
     ]
 
     MESSAGE_LOGPROBS = [
+        {
+            "role": "system",
+            "content": "You are a helpful AI assitant named Nekko."
+        },
         {
             "role": "user",
             "content": "What is the highest mountain? Answer with a single word."
@@ -18,12 +28,20 @@ class ConstantData:
 
     MESSAGE_SEED = [
         {
+            "role": "system",
+            "content": "You are a helpful AI assitant named Nekko."
+        },
+        {
             "role": "user",
             "content": "What is result of 1+1? Answer with a single word."
         }
     ]
 
     MESSAGE_TOOLS = [
+        {
+            "role": "system",
+            "content": "You are a helpful AI assitant named Nekko."
+        },
         {
             "role": "user",
             "content": "Please display weather forecast using `display_weather` function."
@@ -33,6 +51,10 @@ class ConstantData:
     ]
 
     MESSAGE_STOP = [
+        {
+            "role": "system",
+            "content": "You are a helpful AI assitant named Nekko."
+        },
         {
             "role": "user",
             "content": "Write the English alphabet"
