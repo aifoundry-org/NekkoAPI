@@ -19,7 +19,7 @@ class ConstantData:
     MESSAGE_SEED = [
         {
             "role": "user",
-            "content": "What is result of 1+1?"
+            "content": "What is result of 1+1? Answer with a single word."
         }
     ]
 
