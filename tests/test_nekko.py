@@ -1,3 +1,4 @@
+import json
 import uuid
 import openai
 import pytest
@@ -229,3 +230,224 @@ def test_openai_completion_stop(setup_openai_client, test_data):
 
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
+
+
+def get_response(client, **kwargs) -> str:
+    result = str()
+
+    stream = client.chat.completions.create(**kwargs)
+    for chunk in stream:
+        x = chunk.choices[0].delta.content
+        if x is None:
+            continue
+        result += str(x)
+
+    return result
+
+
+def test_seed(setup_openai_client, seed=1337):
+    url = "http://localhost:8000/v1/"
+    try:
+        client = openai.OpenAI(
+            base_url=url, api_key=openai.api_key
+        )
+
+        base_params = {
+            "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+            "messages": ConstantData.MESSAGE_SEED,
+            "stream": True
+        }
+
+        result1 = get_response(client=client, **base_params, seed=seed)
+        result2 = get_response(client=client, **base_params, seed=seed)
+        result3 = get_response(client=client, **base_params, seed=seed+1)
+
+        assert result1 == result2
+        assert result1 != result3
+
+    except openai.OpenAIError as e:
+        pytest.fail(f"OpenAI API call failed: {e}")
+
+
+def test_chat_max_tokens(setup_openai_client):
+    model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
+    url = "http://localhost:8000/v1/"
+    client = openai.OpenAI(base_url=url, api_key=openai.api_key)
+
+    completion_chunks = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": "Tell me a story"}],
+        max_tokens=1,
+        stream=True
+    )
+
+    # Stream returns chunks one token at a time.
+    token_chunks = [chunk for chunk in completion_chunks
+                    if chunk.choices[0].delta.content is not None]
+
+    assert len(token_chunks) == 1
+
+
+def test_chat_stream_options(setup_openai_client):
+    model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
+    url = "http://localhost:8000/v1/"
+    client = openai.OpenAI(base_url=url, api_key=openai.api_key)
+
+    completion_chunks = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": "Tell me a story"}],
+        max_tokens=3,
+        stream=True,
+        stream_options={"include_usage": True}
+    )
+
+    chunks = list(completion_chunks)
+
+    token_chunks = [chunk for chunk in chunks
+                    if chunk.choices and chunk.choices[0].delta.content is not None]
+    assert len(token_chunks) == 3
+    for token_chunk in token_chunks:
+        assert token_chunk.usage is None
+    usage = chunks[-1].usage
+    assert usage.prompt_tokens == 34
+    assert usage.completion_tokens == 3
+    assert usage.total_tokens == 37
+
+
+def test_chat_stream_options_tools(setup_openai_client):
+    model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
+    url = "http://localhost:8000/v1/"
+    client = openai.OpenAI(base_url=url, api_key=openai.api_key)
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "description": "Set door status",
+                "name": "set_door",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "open": {"type": "boolean"},
+                    },
+                    "required": [
+                        "open",
+                    ],
+                    "additionalProperties": False
+                }
+            }
+        }
+    ]
+
+    completion_chunks = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": "Close the door"}],
+        tools=tools,
+        tool_choice={
+            "type": "function",
+            "function": {"name": "set_door"}
+        },
+        stream=True,
+        stream_options={"include_usage": True}
+    )
+
+    chunks = list(completion_chunks)
+
+    usage = chunks[-1].usage
+    assert usage.prompt_tokens == 33
+    assert usage.completion_tokens > 0
+    assert usage.total_tokens == usage.prompt_tokens + usage.completion_tokens
+
+
+# TODO: refactor into separate tests?
+def test_chat_response(setup_openai_client):
+    model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
+    url = "http://localhost:8000/v1/"
+    client = openai.OpenAI(base_url=url, api_key=openai.api_key)
+
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": "What is the capital of France?"}],
+        max_completion_tokens=1,
+    )
+    finish_reason = completion.choices[0].finish_reason
+    assert finish_reason == "length"
+    assert isinstance(completion.choices[0].message.content, str)
+    assert completion.choices[0].message.role == "assistant"
+    assert completion.choices[0].index == 0
+
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": "What is the capital of France?"}],
+        stop=["38634"],  # corresponds to `Paris` for smolm2
+        max_completion_tokens=1000,
+    )
+    finish_reason = completion.choices[0].finish_reason
+    assert finish_reason == "stop"
+
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "description": "Set door status",
+                "name": "set_door",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "open": {"type": "boolean"},
+                    },
+                    "required": [
+                        "open",
+                    ],
+                    "additionalProperties": False
+                }
+            }
+        }
+    ]
+
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": "Open the door"}],
+        tools=tools,
+        tool_choice={
+            "type": "function",
+            "function": {"name": "set_door"}
+        },
+    )
+    finish_reason = completion.choices[0].finish_reason
+    assert finish_reason == "tool_calls"
+    assert completion.choices[0].message.role == "assistant"
+    assert completion.choices[0].message.content is None
+    tool_call = completion.choices[0].message.tool_calls[0]
+    assert tool_call.type == "function"
+    assert tool_call.function.name == "set_door"
+    assert isinstance(json.loads(tool_call.function.arguments), dict)
+
+    functions = [
+        {
+            "description": "Set door status",
+            "name": "set_door",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "open": {"type": "boolean"},
+                },
+                "required": [
+                    "open",
+                ],
+                "additionalProperties": False
+            }
+        }
+    ]
+
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": "Open the door"}],
+        functions=functions,
+        function_call={"name": "set_door", },
+    )
+
+    assert completion.choices[0].message.role == "assistant"
+    assert completion.choices[0].message.content is None
+    function_call = completion.choices[0].message.function_call
+    assert function_call.name == "set_door"
+    assert isinstance(json.loads(function_call.arguments), dict)

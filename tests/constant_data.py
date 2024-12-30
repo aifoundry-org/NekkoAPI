@@ -26,6 +26,17 @@ class ConstantData:
         }
     ]
 
+    MESSAGE_SEED = [
+        {
+            "role": "system",
+            "content": "You are a helpful AI assitant named Nekko."
+        },
+        {
+            "role": "user",
+            "content": "What is result of 1+1? Answer with a single word."
+        }
+    ]
+
     MESSAGE_TOOLS = [
         {
             "role": "system",

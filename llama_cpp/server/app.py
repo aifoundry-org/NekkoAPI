@@ -459,6 +459,7 @@ async def create_chat_completion(
         "n",
         "user",
         "max_completion_tokens",
+        "stream_options"
     }
     # TODO: use whitelisting and only include permitted fields.
     # TODO: only leave OpenAI API compatible fields.
@@ -480,6 +481,9 @@ async def create_chat_completion(
     # Override max_tokens with max_completion_tokens.
     if body.max_completion_tokens is not None:
         kwargs["max_tokens"] = body.max_completion_tokens
+
+    if body.stream_options and body.stream_options.include_usage:
+        kwargs["usage"] = True
 
     try:
         iterator_or_completion: Union[
