@@ -39,6 +39,17 @@ class ConstantData:
         }
     ]
 
+    MESSAGE_STOP = [
+        {
+            "role": "system",
+            "content": "You are a helpful AI assitant named Nekko."
+        },
+        {
+            "role": "user",
+            "content": "Write the English alphabet"
+        }
+    ]
+
     TOOLS_FUNCTION = [
         {
             "type": "function",
