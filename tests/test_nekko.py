@@ -191,6 +191,47 @@ def test_openai_completion_tools(setup_openai_client, test_data):
         pytest.fail(f"OpenAI API call failed: {e}")
 
 
+CHAT_COMPLETION_STOP = {
+    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "messages": ConstantData.MESSAGE_STOP,
+    "stop": ["K", "k"],
+    "kwargs": {
+        "max_completion_tokens": 200
+    }
+}
+
+
+@pytest.mark.parametrize(
+    "test_data",
+    [
+        CHAT_COMPLETION_STOP
+    ]
+)
+def test_openai_completion_stop(setup_openai_client, test_data):
+    """Test completion request and check the stop function ."""
+    url = "http://localhost:8000/v1/"
+
+    try:
+        client = openai.OpenAI(
+            base_url=url, api_key=openai.api_key
+        )
+        # Make a basic completion request
+        completion = client.chat.completions.create(
+            model=test_data["model"],
+            messages=test_data["messages"],
+            stop=test_data["stop"],
+            **test_data["kwargs"]
+        )
+
+        # Check the stop function
+        assert completion.choices[0].message is not None
+        for stop_string in test_data["stop"]:
+            assert stop_string not in completion.choices[0].message
+
+    except openai.OpenAIError as e:
+        pytest.fail(f"OpenAI API call failed: {e}")
+
+
 def get_response(client, **kwargs) -> str:
     result = str()
 
