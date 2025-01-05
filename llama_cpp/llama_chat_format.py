@@ -340,6 +340,7 @@ def _convert_text_completion_chunks_to_chat(
                     }
                 ],
             }
+        choices = chunk.get("choices")
         yield {
             "id": "chat" + chunk["id"],
             "model": chunk["model"],
@@ -352,11 +353,13 @@ def _convert_text_completion_chunks_to_chat(
                         {
                             "content": chunk["choices"][0]["text"],
                         }
-                        if chunk["choices"][0]["finish_reason"] is None
+                        if choices and choices[0]["finish_reason"] is None
                         else {}
                     ),
-                    "logprobs": _convert_text_completion_logprobs_to_chat(chunk["choices"][0]["logprobs"]),
-                    "finish_reason": chunk["choices"][0]["finish_reason"],
+                    "logprobs": (_convert_text_completion_logprobs_to_chat(choices[0]["logprobs"])
+                                 if choices else None),
+                    "finish_reason": (choices[0]["finish_reason"]
+                                      if choices else None),
                 }
             ],
         }
