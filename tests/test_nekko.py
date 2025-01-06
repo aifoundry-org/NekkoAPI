@@ -39,7 +39,8 @@ CHAT_COMPLETION_LOGITBIAS = {
     "messages": ConstantData.MESSAGE_BASIC,
     "kwargs": {
         "max_completion_tokens": 200,
-        "logit_bias": {976: -100, 48887: -100, 328: -100, 125280:-100}
+        # Variations of "time":
+        "logit_bias": {655: -100, 1711: -100, 2256: -100}
     }
 }
 
