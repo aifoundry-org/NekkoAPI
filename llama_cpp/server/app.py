@@ -8,7 +8,7 @@ import uuid
 
 from threading import Lock
 from functools import partial
-from typing import Iterator, List, Optional, Union, Dict
+from typing import Iterator, List, Optional, Union
 
 import llama_cpp
 
@@ -19,6 +19,12 @@ from fastapi import Depends, FastAPI, APIRouter, Request, HTTPException, status,
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.openapi.docs import (
+    get_redoc_html,
+    get_swagger_ui_html,
+    get_swagger_ui_oauth2_redirect_html
+)
+from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 from starlette_context.plugins import RequestIdPlugin  # type: ignore
 from starlette_context.middleware import RawContextMiddleware
@@ -150,6 +156,8 @@ def create_app(
     )
     app.include_router(router)
 
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
     assert model_settings is not None
     set_llama_proxy(model_settings=model_settings)
 
@@ -157,6 +165,8 @@ def create_app(
         set_ping_message_factory(lambda: bytes())
 
     app.state.transaction_logger = setup_logger()
+
+    configure_openapi(app)
 
     return app
 
@@ -218,45 +228,45 @@ async def authenticate(
 openai_v1_tag = "OpenAI V1"
 
 
-@router.post(
-    "/v1/completions",
-    summary="Completion",
-    dependencies=[Depends(authenticate)],
-    response_model=Union[
-        llama_cpp.CreateCompletionResponse,
-        str,
-    ],
-    responses={
-        "200": {
-            "description": "Successful Response",
-            "content": {
-                "application/json": {
-                    "schema": {
-                        "anyOf": [
-                            {"$ref": "#/components/schemas/CreateCompletionResponse"}
-                        ],
-                        "title": "Completion response, when stream=False",
-                    }
-                },
-                "text/event-stream": {
-                    "schema": {
-                        "type": "string",
-                        "title": "Server Side Streaming response, when stream=True. "
-                        + "See SSE format: https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format",  # noqa: E501
-                        "example": """data: {... see CreateCompletionResponse ...} \\n\\n data: ... \\n\\n ... data: [DONE]""",
-                    }
-                },
-            },
-        }
-    },
-    tags=[openai_v1_tag],
-)
-@router.post(
-    "/v1/engines/copilot-codex/completions",
-    include_in_schema=False,
-    dependencies=[Depends(authenticate)],
-    tags=[openai_v1_tag],
-)
+# @router.post(
+#     "/v1/completions",
+#     summary="Completion",
+#     dependencies=[Depends(authenticate)],
+#     response_model=Union[
+#         llama_cpp.CreateCompletionResponse,
+#         str,
+#     ],
+#     responses={
+#         "200": {
+#             "description": "Successful Response",
+#             "content": {
+#                 "application/json": {
+#                     "schema": {
+#                         "anyOf": [
+#                             {"$ref": "#/components/schemas/CreateCompletionResponse"}
+#                         ],
+#                         "title": "Completion response, when stream=False",
+#                     }
+#                 },
+#                 "text/event-stream": {
+#                     "schema": {
+#                         "type": "string",
+#                         "title": "Server Side Streaming response, when stream=True. "
+#                         + "See SSE format: https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format",  # noqa: E501
+#                         "example": """data: {... see CreateCompletionResponse ...} \\n\\n data: ... \\n\\n ... data: [DONE]""",
+#                     }
+#                 },
+#             },
+#         }
+#     },
+#     tags=[openai_v1_tag],
+# )
+# @router.post(
+#     "/v1/engines/copilot-codex/completions",
+#     include_in_schema=False,
+#     dependencies=[Depends(authenticate)],
+#     tags=[openai_v1_tag],
+# )
 async def create_completion(
     request: Request,
     body: CreateCompletionRequest,
@@ -310,7 +320,7 @@ async def create_completion(
             yield from iterator_or_completion
             exit_stack.close()
 
-        send_chan, recv_chan = anyio.create_memory_object_stream(10) # type: ignore
+        send_chan, recv_chan = anyio.create_memory_object_stream(10)  # type: ignore
         return EventSourceResponse(
             recv_chan,
             data_sender_callable=partial(  # type: ignore
@@ -321,19 +331,19 @@ async def create_completion(
                 on_complete=exit_stack.close,
             ),
             sep="\n",
-            ping_message_factory=_ping_message_factory, # type: ignore
+            ping_message_factory=_ping_message_factory,  # type: ignore
         )
     else:
         exit_stack.close()
         return iterator_or_completion
 
 
-@router.post(
-    "/v1/embeddings",
-    summary="Embedding",
-    dependencies=[Depends(authenticate)],
-    tags=[openai_v1_tag],
-)
+# @router.post(
+#     "/v1/embeddings",
+#     summary="Embedding",
+#     dependencies=[Depends(authenticate)],
+#     tags=[openai_v1_tag],
+# )
 async def create_embedding(
     request: CreateEmbeddingRequest,
     llama_proxy: LlamaProxy = Depends(get_llama_proxy),
@@ -383,7 +393,7 @@ async def create_chat_completion(
             "normal": {
                 "summary": "Chat Completion",
                 "value": {
-                    "model": "gpt-3.5-turbo",
+                    "model": "llama",
                     "messages": [
                         {"role": "system", "content": "You are a helpful assistant."},
                         {"role": "user", "content": "What is the capital of France?"},
@@ -393,7 +403,7 @@ async def create_chat_completion(
             "json_mode": {
                 "summary": "JSON Mode",
                 "value": {
-                    "model": "gpt-3.5-turbo",
+                    "model": "llama",
                     "messages": [
                         {"role": "system", "content": "You are a helpful assistant."},
                         {"role": "user", "content": "Who won the world series in 2020"},
@@ -404,7 +414,7 @@ async def create_chat_completion(
             "tool_calling": {
                 "summary": "Tool Calling",
                 "value": {
-                    "model": "gpt-3.5-turbo",
+                    "model": "llama",
                     "messages": [
                         {"role": "system", "content": "You are a helpful assistant."},
                         {"role": "user", "content": "Extract Jason is 30 years old."},
@@ -437,7 +447,7 @@ async def create_chat_completion(
             "logprobs": {
                 "summary": "Logprobs",
                 "value": {
-                    "model": "gpt-3.5-turbo",
+                    "model": "llama",
                     "messages": [
                         {"role": "system", "content": "You are a helpful assistant."},
                         {"role": "user", "content": "What is the capital of France?"},
@@ -508,13 +518,10 @@ async def create_chat_completion(
     # types.
     # Rename "json_schema" into "schema" to avoid touching llama.cpp
     if body.response_format is not None:
-      if body.response_format["json_schema"] is not None:
-         kwargs["response_format"]["type"] = "json_object"
-         kwargs["response_format"]["schema"] = body.response_format["json_schema"].get("schema")
-         del kwargs["response_format"]["json_schema"]
-
-    if body.grammar is not None:
-        kwargs["grammar"] = llama_cpp.LlamaGrammar.from_string(body.grammar)
+        if body.response_format["json_schema"] is not None:
+            kwargs["response_format"]["type"] = "json_object"
+            kwargs["response_format"]["schema"] = body.response_format["json_schema"].get("schema")
+            del kwargs["response_format"]["json_schema"]
 
     # Override max_tokens with max_completion_tokens.
     if body.max_completion_tokens is not None:
@@ -549,7 +556,7 @@ async def create_chat_completion(
 
             exit_stack.close()
 
-        send_chan, recv_chan = anyio.create_memory_object_stream(10) # type: ignore
+        send_chan, recv_chan = anyio.create_memory_object_stream(10)  # type: ignore
         return EventSourceResponse(
             recv_chan,
             data_sender_callable=partial(  # type: ignore
@@ -560,7 +567,7 @@ async def create_chat_completion(
                 on_complete=exit_stack.close,
             ),
             sep="\n",
-            ping_message_factory=_ping_message_factory, # type: ignore
+            ping_message_factory=_ping_message_factory,  # type: ignore
         )
     else:
         completion_result.append(iterator_or_completion)
@@ -595,12 +602,12 @@ async def get_models(
 extras_tag = "Extras"
 
 
-@router.post(
-    "/extras/tokenize",
-    summary="Tokenize",
-    dependencies=[Depends(authenticate)],
-    tags=[extras_tag],
-)
+# @router.post(
+#     "/extras/tokenize",
+#     summary="Tokenize",
+#     dependencies=[Depends(authenticate)],
+#     tags=[extras_tag],
+# )
 async def tokenize(
     body: TokenizeInputRequest,
     llama_proxy: LlamaProxy = Depends(get_llama_proxy),
@@ -610,12 +617,12 @@ async def tokenize(
     return TokenizeInputResponse(tokens=tokens)
 
 
-@router.post(
-    "/extras/tokenize/count",
-    summary="Tokenize Count",
-    dependencies=[Depends(authenticate)],
-    tags=[extras_tag],
-)
+# @router.post(
+#     "/extras/tokenize/count",
+#     summary="Tokenize Count",
+#     dependencies=[Depends(authenticate)],
+#     tags=[extras_tag],
+# )
 async def count_query_tokens(
     body: TokenizeInputRequest,
     llama_proxy: LlamaProxy = Depends(get_llama_proxy),
@@ -625,12 +632,12 @@ async def count_query_tokens(
     return TokenizeInputCountResponse(count=len(tokens))
 
 
-@router.post(
-    "/extras/detokenize",
-    summary="Detokenize",
-    dependencies=[Depends(authenticate)],
-    tags=[extras_tag],
-)
+# @router.post(
+#     "/extras/detokenize",
+#     summary="Detokenize",
+#     dependencies=[Depends(authenticate)],
+#     tags=[extras_tag],
+# )
 async def detokenize(
     body: DetokenizeInputRequest,
     llama_proxy: LlamaProxy = Depends(get_llama_proxy),
@@ -638,3 +645,27 @@ async def detokenize(
     text = llama_proxy(body.model).detokenize(body.tokens).decode("utf-8")
 
     return DetokenizeInputResponse(text=text)
+
+
+def configure_openapi(app):
+    @app.get("/docs", include_in_schema=False)
+    async def custom_swagger_ui_html():
+        return get_swagger_ui_html(
+            openapi_url=app.openapi_url,
+            title=app.title + " - Swagger UI",
+            oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+            swagger_js_url="/static/swagger-ui-bundle.js",
+            swagger_css_url="/static/swagger-ui.css",
+        )
+
+    @app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+    async def swagger_ui_redirect():
+        return get_swagger_ui_oauth2_redirect_html()
+
+    @app.get("/redoc", include_in_schema=False)
+    async def redoc_html():
+        return get_redoc_html(
+            openapi_url=app.openapi_url,
+            title=app.title + " - ReDoc",
+            redoc_js_url="/static/redoc.standalone.js",
+        )
