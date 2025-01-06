@@ -8,7 +8,9 @@ https://github.com/openai/openai-openapi/blob/master/openapi.yaml
 """
 
 from typing import Any, List, Optional, Dict, Union
-from typing_extensions import TypedDict, NotRequired, Literal
+from typing_extensions import Annotated, TypedDict, NotRequired, Literal
+
+from pydantic import Field
 
 
 # NOTE: Defining this correctly using annotations seems to break pydantic validation.
@@ -49,6 +51,7 @@ class CompletionChoice(TypedDict):
     finish_reason: Optional[Literal["stop", "length"]]
 
 
+# TODO: annotate
 class CompletionUsage(TypedDict):
     prompt_tokens: int
     completion_tokens: int
@@ -65,11 +68,13 @@ class CreateCompletionResponse(TypedDict):
     system_fingerprint: str
 
 
+# TODO: annotate
 class ChatCompletionResponseFunctionCall(TypedDict):
     name: str
     arguments: str
 
 
+# TODO: annotate
 class ChatCompletionResponseMessage(TypedDict):
     content: Optional[str]
     tool_calls: NotRequired["ChatCompletionMessageToolCalls"]
@@ -78,17 +83,20 @@ class ChatCompletionResponseMessage(TypedDict):
 
 
 class ChatCompletionFunction(TypedDict):
+    # TODO?: annotate
     name: str
     description: NotRequired[str]
-    parameters: Dict[str, JsonType]  # TODO: make this more specific
+    parameters: Dict[str, JsonType]
 
 
+# TODO: annotate
 class ChatCompletionTopLogprobToken(TypedDict):
     token: str
     logprob: float
     bytes: Optional[List[int]]
 
 
+# TODO: annotate
 class ChatCompletionLogprobToken(ChatCompletionTopLogprobToken):
     token: str
     logprob: float
@@ -96,11 +104,13 @@ class ChatCompletionLogprobToken(ChatCompletionTopLogprobToken):
     top_logprobs: List[ChatCompletionTopLogprobToken]
 
 
+# TODO: annotate
 class ChatCompletionLogprobs(TypedDict):
     content: Optional[List[ChatCompletionLogprobToken]]
     refusal: Optional[List[ChatCompletionLogprobToken]]
 
 
+# TODO: annotate
 class ChatCompletionResponseChoice(TypedDict):
     index: int
     message: "ChatCompletionResponseMessage"
@@ -108,6 +118,7 @@ class ChatCompletionResponseChoice(TypedDict):
     finish_reason: Optional[str]
 
 
+# TODO: annotate
 class CreateChatCompletionResponse(TypedDict):
     id: str
     object: Literal["chat.completion"]
@@ -118,11 +129,13 @@ class CreateChatCompletionResponse(TypedDict):
     system_fingerprint: str
 
 
+# TODO: annotate
 class ChatCompletionMessageToolCallChunkFunction(TypedDict):
     name: Optional[str]
     arguments: str
 
 
+# TODO: annotate
 class ChatCompletionMessageToolCallChunk(TypedDict):
     index: int
     id: NotRequired[str]
@@ -206,6 +219,10 @@ ChatCompletionRequestMessageContentPart = Union[
 class ChatCompletionRequestSystemMessage(TypedDict):
     role: Literal["system"]
     content: Optional[str]
+    # TODO; add annotation about the field being ignored
+    # TODO: move into other message types
+    # TODO: add "developer" message type
+    name: NotRequired[Optional[str]]
 
 
 class ChatCompletionRequestUserMessage(TypedDict):
@@ -267,6 +284,7 @@ class ChatCompletionRequestFunctionCallOption(TypedDict):
     name: str
 
 
+# TODO?: annotate?
 ChatCompletionRequestFunctionCall = Union[
     Literal["none", "auto"], ChatCompletionRequestFunctionCallOption
 ]
@@ -274,6 +292,7 @@ ChatCompletionRequestFunctionCall = Union[
 ChatCompletionFunctionParameters = Dict[str, JsonType]  # TODO: make this more specific
 
 
+# TODO?: annotate?
 class ChatCompletionToolFunction(TypedDict):
     name: str
     description: NotRequired[str]

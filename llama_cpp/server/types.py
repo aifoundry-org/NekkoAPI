@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Optional, Union, Dict, Any
-from typing_extensions import TypedDict, Literal, NotRequired
+from typing_extensions import Annotated, TypedDict, Literal, NotRequired
 
 from pydantic import BaseModel, Field
 
@@ -101,37 +101,43 @@ grammar = Field(
     description="A CBNF grammar (as string) to be used for formatting the model's output.",
 )
 
+
 JsonType = Union[None, int, str, bool, List[Any], Dict[str, Any]]
 
 
 class FormatJsonSchema(TypedDict):
-    description: Optional[str] = Field(
+    description: Annotated[Optional[str], Field(
         default=None,
         description="A description of what the response format is for."
-    )
-    name: str = Field(description="The name of the response format.")
-    schema: NotRequired[JsonType] = Field(
-        default=None, description="The schema for the response format, described as a JSON Schema object."
-    )
-    strict: Optional[bool] = Field(
+    )]
+    name: Annotated[str, Field(description="The name of the response format.")]
+    schema: Annotated[Optional[JsonType], Field(
+        default=None,
+        description="The schema for the response format, described as a JSON Schema object."
+    )]
+    strict: Annotated[Optional[bool], Field(
         default=False,
         description="Whether to enable strict schema adherence when generating the output. (ignored)"
-    )
+    )]
 
 
 class ResponseFormatText(TypedDict):
-    type: Literal["text"]
+    type: Annotated[Literal["text"], Field(
+        description="TODO"
+    )]
 
 
 class ResponseFormatJsonObject(TypedDict):
-    type: Literal["json_object"]
+    type: Annotated[Literal["json_object"], Field(
+        description="TODO"
+    )]
 
 
 # TODO: use the type of JsonSchema to describe JsonSchema (yeah, it
 # is self referential...)
 class ResponseFormatJsonSchema(TypedDict):
-    type: Literal["json_schema"]
-    json_schema: JsonType
+    type: Annotated[Literal["json_schema"], Field(description="TODO")]
+    json_schema: Annotated[FormatJsonSchema, Field(description="TODO")]
 
 
 class StreamOptions(BaseModel):
@@ -185,17 +191,6 @@ class CreateCompletionRequest(BaseModel):
     mirostat_eta: float = mirostat_eta_field
     grammar: Optional[str] = None
 
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "prompt": "\n\n### Instructions:\nWhat is the capital of France?\n\n### Response:\n",
-                    "stop": ["\n", "###"],
-                }
-            ]
-        }
-    }
-
 
 class CreateEmbeddingRequest(BaseModel):
     model: Optional[str] = model_field
@@ -213,15 +208,6 @@ class CreateEmbeddingRequest(BaseModel):
     }
 
 
-class ChatCompletionRequestMessage(BaseModel):
-    role: Literal["system", "user", "assistant", "function"] = Field(
-        default="user", description="The role of the message."
-    )
-    content: Optional[str] = Field(
-        default="", description="The content of the message."
-    )
-
-
 class CreateChatCompletionRequest(BaseModel):
     messages: List[llama_cpp.ChatCompletionRequestMessage] = Field(
         default=[], description="A list of messages to generate completions for."
@@ -229,10 +215,12 @@ class CreateChatCompletionRequest(BaseModel):
     functions: Optional[List[llama_cpp.ChatCompletionFunction]] = Field(
         default=None,
         description="A list of functions to apply to the generated completions.",
+        deprecated="Deprecated in favor of `tools`.",
     )
     function_call: Optional[llama_cpp.ChatCompletionRequestFunctionCall] = Field(
         default=None,
         description="A function to apply to the generated completions.",
+        deprecated="Deprecated in favor of `tool_choice`.",
     )
     tools: Optional[List[llama_cpp.ChatCompletionTool]] = Field(
         default=None,
@@ -279,7 +267,7 @@ class CreateChatCompletionRequest(BaseModel):
     model: str = model_field
 
     # ignored or currently unsupported
-    n: Optional[int] = 1
+    n: Optional[int] = Field(default=1, description="TODO")
 
     user: Optional[str] = Field(
         default=None,
@@ -299,27 +287,6 @@ class CreateChatCompletionRequest(BaseModel):
     # llama.cpp specific parameters
     top_k: int = top_k_field
     repeat_penalty: float = repeat_penalty_field
-    mirostat_mode: int = mirostat_mode_field
-    mirostat_tau: float = mirostat_tau_field
-    mirostat_eta: float = mirostat_eta_field
-    grammar: Optional[str] = None
-
-    model_config = {
-        "json_schema_extra": {
-            "examples": [
-                {
-                    "messages": [
-                        ChatCompletionRequestMessage(
-                            role="system", content="You are a helpful assistant."
-                        ).model_dump(),
-                        ChatCompletionRequestMessage(
-                            role="user", content="What is the capital of France?"
-                        ).model_dump(),
-                    ]
-                }
-            ]
-        }
-    }
 
 
 class ModelData(TypedDict):
