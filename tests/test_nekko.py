@@ -452,3 +452,55 @@ def test_chat_response(setup_openai_client):
     function_call = completion.choices[0].message.function_call
     assert function_call.name == "set_door"
     assert isinstance(json.loads(function_call.arguments), dict)
+
+
+SYSTEM_FINGEPRINT = {
+    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "messages": ConstantData.SYSTEM_FINGERPRINT_MESSAGES,
+    "stream": False,
+    "kwargs": {
+        "max_completion_tokens": 200
+    }
+}
+
+SYSTEM_FINGEPRINT_STREAM = {
+    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "messages": ConstantData.SYSTEM_FINGERPRINT_MESSAGES,
+    "stream": True,
+    "kwargs": {
+        "max_completion_tokens": 200
+    }
+}
+
+@pytest.mark.parametrize(
+    "test_data",
+    [
+        SYSTEM_FINGEPRINT,
+        SYSTEM_FINGEPRINT_STREAM
+    ]
+)
+def test_system_fingerprint(setup_openai_client, test_data):
+    """Test completion request and check the stop function ."""
+    url = "http://localhost:8000/v1/"
+
+    try:
+        client = openai.OpenAI(
+            base_url=url, api_key=openai.api_key
+        )
+
+        completion = client.chat.completions.create(
+            model=test_data["model"],
+            messages=test_data["messages"],
+            stream=test_data['stream'],
+            **test_data["kwargs"]
+        )
+
+        if test_data['stream']:
+            for chunk in completion:
+                assert chunk.system_fingerprint is not None
+        else:
+            assert completion.system_fingerprint is not None
+
+    except openai.OpenAIError as e:
+        pytest.fail(f"OpenAI API call failed: {e}")
+

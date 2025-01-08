@@ -90,3 +90,14 @@ class ConstantData:
             }
         }
     ]
+
+    SYSTEM_FINGERPRINT_MESSAGES = [
+        {
+            "role": "system",
+            "content": "You are a helpful AI assitant named Nekko."
+        },
+        {
+            "role": "user",
+            "content": "Hello!"
+        }
+    ]

@@ -62,6 +62,7 @@ class CreateCompletionResponse(TypedDict):
     model: str
     choices: List[CompletionChoice]
     usage: NotRequired[CompletionUsage]
+    system_fingerprint: str
 
 
 class ChatCompletionResponseFunctionCall(TypedDict):
@@ -114,6 +115,7 @@ class CreateChatCompletionResponse(TypedDict):
     model: str
     choices: List[ChatCompletionResponseChoice]
     usage: CompletionUsage
+    system_fingerprint: str
 
 
 class ChatCompletionMessageToolCallChunkFunction(TypedDict):

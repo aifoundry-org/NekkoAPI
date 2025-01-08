@@ -305,6 +305,8 @@ def _convert_text_completion_to_chat(
             }
         ],
         "usage": completion["usage"],
+        "system_fingerprint": completion['system_fingerprint']
+        
     }
 
 
@@ -320,7 +322,8 @@ def _convert_text_completion_chunks_to_chat(
                 "created": chunk["created"],
                 "object": "chat.completion.chunk",
                 "choices": [],
-                "usage": chunk["usage"]
+                "usage": chunk["usage"],
+                "system_fingerprint": chunk["system_fingerprint"]
             }
             break
         if i == 0:
@@ -339,6 +342,7 @@ def _convert_text_completion_chunks_to_chat(
                         "finish_reason": None,
                     }
                 ],
+                "system_fingerprint": chunk["system_fingerprint"]
             }
         choices = chunk.get("choices")
         yield {
@@ -362,6 +366,7 @@ def _convert_text_completion_chunks_to_chat(
                                       if choices else None),
                 }
             ],
+            "system_fingerprint": chunk["system_fingerprint"]
         }
 
 
@@ -428,6 +433,7 @@ def _convert_completion_to_chat_function(
                 }
             ],
             "usage": completion["usage"],
+            "system_fingerprint": completion["system_fingerprint"]
         }
         return chat_completion
     else:
@@ -451,7 +457,8 @@ def _convert_completion_to_chat_function(
                         "created": chunk["created"],
                         "object": "chat.completion.chunk",
                         "choices": [],
-                        "usage": chunk["usage"]
+                        "usage": chunk["usage"],
+                        "system_fingerprint": chunk['system_fingerprint']
                     }
                     break
                 if first:
@@ -477,6 +484,7 @@ def _convert_completion_to_chat_function(
                                 },
                             }
                         ],
+                        "system_fingerprint": chunk['system_fingerprint']
                     }
                     yield {
                         "id": "chat" + chunk["id"],
@@ -511,6 +519,7 @@ def _convert_completion_to_chat_function(
                                 },
                             }
                         ],
+                        "system_fingerprint": chunk['system_fingerprint']
                     }
                     first = False
                     continue
@@ -546,6 +555,7 @@ def _convert_completion_to_chat_function(
                             },
                         }
                     ],
+                    "system_fingerprint": chunk['system_fingerprint']
                 }
 
             if id_ is not None and created is not None and model is not None:
@@ -567,6 +577,7 @@ def _convert_completion_to_chat_function(
                             },
                         }
                     ],
+                    "system_fingerprint": chunk['system_fingerprint']
                 }
                 if usage_chunk:
                     yield usage_chunk
@@ -1776,6 +1787,7 @@ def functionary_chat_handler(
             }
         ],
         usage=completion["usage"],
+        system_fingerprint=completion["system_fingerprint"],
     )
 
 
@@ -2676,6 +2688,7 @@ def functionary_v1_v2_chat_handler(
                 }
             ],
             usage=completion["usage"],
+            system_fingerprint=completion["system_fingerprint"]
         )
 
 
