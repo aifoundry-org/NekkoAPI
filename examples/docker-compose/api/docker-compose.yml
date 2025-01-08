@@ -1,0 +1,25 @@
+services:
+  nekko_api:
+    image: ghcr.io/aifoundry-org/nekko-api:latest
+    cap_add:
+      - SYS_RESOURCE
+    volumes:
+      - ../../../models:/app/models:ro
+      - ./settings.json:/app/settings.json:ro
+    environment:
+      - CONFIG_FILE=settings.json
+    ports:
+      - 80:8000
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - -H
+        - "Authorization: Bearer YOUR_API_KEY"
+        - http://0.0.0.0:8000/v1/models
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      start_interval: 5s
+      retries: 5
