@@ -492,7 +492,7 @@ class Llama:
         if "tokenizer.chat_template" in self.metadata:
             template_choices["chat_template.default"] = self.metadata[
                 "tokenizer.chat_template"
-            ]
+            ],
 
         if self.verbose and template_choices:
             print(
@@ -951,7 +951,7 @@ class Llama:
                 tokens.extend(
                     draft_tokens.astype(int)[
                         : self._n_ctx - self.n_tokens - len(tokens)
-                    ]
+                    ],
                 )
 
     def create_embedding(
@@ -982,7 +982,7 @@ class Llama:
                 "index": idx,
             }
             for idx, emb in enumerate(embeds)
-        ]
+        ],
 
         return {
             "object": "list",
@@ -1048,11 +1048,11 @@ class Llama:
                     embedding: List[List[float]] = [
                         ptr[pos + j * n_embd : pos + (j + 1) * n_embd]
                         for j in range(size)
-                    ]
+                    ],
                     if normalize:
                         embedding = [
                             internals.normalize_embedding(e) for e in embedding
-                        ]
+                        ],
                     data.append(embedding)
                     pos += size
             else:
@@ -1161,7 +1161,7 @@ class Llama:
         bos_tokens: List[int] = [cls_token_id if cls_token_id != -1 else bos_token_id]
         eos_tokens: List[int] = [
             sep_token_id if sep_token_id != -1 else self.token_eos()
-        ]
+        ],
 
         if (
             (isinstance(prompt, list) and suffix is None)
@@ -1206,7 +1206,7 @@ class Llama:
                 + (
                     self.tokenize(suffix.encode("utf-8"), add_bos=False, special=False)[
                         suffix_space_prefix:
-                    ]
+                    ],
                     if suffix
                     else []
                 )
@@ -1457,7 +1457,7 @@ class Llama:
                                     "logprobs": logprobs_or_none,
                                     "finish_reason": None,
                                 }
-                            ]
+                            ],
                         }
                 else:
                     while len(remaining_tokens) > 0:
@@ -1499,7 +1499,7 @@ class Llama:
                                     "logprobs": None,
                                     "finish_reason": None,
                                 }
-                            ]
+                            ],
                         }
 
             if len(completion_tokens) >= max_tokens:
@@ -1593,7 +1593,7 @@ class Llama:
                                 "logprobs": logprobs_or_none,
                                 "finish_reason": None,
                             }
-                        ]
+                        ],
                     }
                     break
                 returned_tokens += 1
@@ -1611,7 +1611,7 @@ class Llama:
                             "logprobs": logprobs_or_none,
                             "finish_reason": None,
                         }
-                    ]
+                    ],
                 }
             yield {
                 "id": completion_id,
@@ -1625,7 +1625,7 @@ class Llama:
                         "logprobs": None,
                         "finish_reason": finish_reason,
                     }
-                ]
+                ],
             }
             if self.cache:
                 if self.verbose:
@@ -1683,7 +1683,7 @@ class Llama:
                     "utf-8", errors="ignore"
                 )
                 for i, token in enumerate(all_tokens)
-            ]
+            ],
             all_logprobs = Llama.logits_to_logprobs(self._scores)[token_offset:]
             # TODO: may be able to change this loop to use np.take_along_dim
             for idx, (token, token_str, logprobs_token) in enumerate(
@@ -2283,7 +2283,7 @@ class Llama:
         files = [
             file["name"] if isinstance(file, dict) else file
             for file in hffs.ls(repo_id, recursive=True)
-        ]
+        ],
 
         # split each file into repo_id, subfolder, filename
         file_list: List[str] = []
@@ -2389,8 +2389,7 @@ class LlamaState:
 
 
 LogitsProcessor = Callable[
-    [npt.NDArray[np.intc], npt.NDArray[np.single]], npt.NDArray[np.single]
-]
+    [npt.NDArray[np.intc], npt.NDArray[np.single]], npt.NDArray[np.single] ],
 
 
 class LogitsProcessorList(List[LogitsProcessor]):

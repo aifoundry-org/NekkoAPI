@@ -339,7 +339,7 @@ def _convert_text_completion_chunks_to_chat(
                         "logprobs": None,
                         "finish_reason": None,
                     }
-                ]
+                ],
             }
         choices = chunk.get("choices")
         yield {
@@ -362,7 +362,7 @@ def _convert_text_completion_chunks_to_chat(
                     "finish_reason": (choices[0]["finish_reason"]
                                       if choices else None),
                 }
-            ]
+            ],
         }
 
 
@@ -477,7 +477,7 @@ def _convert_completion_to_chat_function(
                                     "tool_calls": None,
                                 },
                             }
-                        ]
+                        ],
                     }
                     yield {
                         "id": "chat" + chunk["id"],
@@ -511,7 +511,7 @@ def _convert_completion_to_chat_function(
                                     ],
                                 },
                             }
-                        ]
+                        ],
                     }
                     first = False
                     continue
@@ -546,7 +546,7 @@ def _convert_completion_to_chat_function(
                                 ],
                             },
                         }
-                    ]
+                    ],
                 }
 
             if id_ is not None and created is not None and model is not None:
@@ -567,7 +567,7 @@ def _convert_completion_to_chat_function(
                                 "tool_calls": None,
                             },
                         }
-                    ]
+                    ],
                 }
                 if usage_chunk:
                     yield usage_chunk
@@ -650,7 +650,7 @@ def chat_formatter_to_chat_completion_handler(
                     "function": function,
                 }
                 for function in functions
-            ]
+            ],
 
         # Convert legacy function_call to tool_choice
         if function_call is not None:
@@ -792,7 +792,7 @@ def hf_tokenizer_config_to_chat_formatter(
                 llama_types.ChatCompletionRequestAssistantMessage(
                     role="assistant", content=""
                 ),
-            ]
+            ],
         prompt = env.render(
             messages=messages,
             bos_token=bos_token,
@@ -1559,7 +1559,7 @@ def functionary_chat_handler(
                             tool["function"]
                             for tool in tools
                             if tool["type"] == "function"
-                        ]
+                        ],
                     ),
                 )
             )
@@ -1948,7 +1948,7 @@ def functionary_v1_v2_chat_handler(
                                 tool["function"]
                                 for tool in tools
                                 if tool["type"] == "function"
-                            ]
+                            ],
                         ),
                     )
                 )
@@ -2127,7 +2127,7 @@ def functionary_v1_v2_chat_handler(
                                         "arguments": "",
                                     },
                                 }
-                            ]
+                            ],
                         }
                     else:
                         func_call_dict = {
@@ -2166,7 +2166,7 @@ def functionary_v1_v2_chat_handler(
                                     "arguments": chunk["choices"][0]["text"].rstrip(),
                                 },
                             }
-                        ]
+                        ],
                     }
                 else:
                     func_call_dict = {
@@ -2257,7 +2257,7 @@ def functionary_v1_v2_chat_handler(
                         [
                             random.choice(string.ascii_letters + string.digits)
                             for _ in range(24)
-                        ]
+                        ],
                     )
                     if tools is not None:
                         func_call_dict = {
@@ -2271,7 +2271,7 @@ def functionary_v1_v2_chat_handler(
                                         "arguments": "",
                                     },
                                 }
-                            ]
+                            ],
                         }
                     else:
                         func_call_dict = {
@@ -2414,7 +2414,7 @@ def functionary_v1_v2_chat_handler(
                                                 ].rstrip(),
                                             },
                                         }
-                                    ]
+                                    ],
                                 }
                             else:
                                 func_call_dict = {
@@ -2632,7 +2632,7 @@ def functionary_v1_v2_chat_handler(
                         [
                             random.choice(string.ascii_letters + string.digits)
                             for _ in range(24)
-                        ]
+                        ],
                     ),
                     "type": "function",
                     "function": {
@@ -2899,7 +2899,7 @@ class Llava15ChatHandler:
                     "function": function,
                 }
                 for function in functions
-            ]
+            ],
 
         # Convert legacy function_call to tool_choice
         if function_call is not None:
@@ -3056,7 +3056,7 @@ class Llava15ChatHandler:
         files = [
             file["name"] if isinstance(file, dict) else file
             for file in hffs.ls(repo_id)  # type: ignore
-        ]
+        ],
 
         # split each file into repo_id, subfolder, filename
         file_list: List[str] = []
@@ -3502,7 +3502,7 @@ def chatml_function_calling(
                 "function": function,
             }
             for function in functions
-        ]
+        ],
 
     # Convert legacy function_call to tool_choice
     if function_call is not None:
