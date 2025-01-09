@@ -1048,11 +1048,11 @@ class Llama:
                     embedding: List[List[float]] = [
                         ptr[pos + j * n_embd : pos + (j + 1) * n_embd]
                         for j in range(size)
-                    ],
+                    ]
                     if normalize:
                         embedding = [
                             internals.normalize_embedding(e) for e in embedding
-                        ],
+                        ]
                     data.append(embedding)
                     pos += size
             else:
@@ -1161,7 +1161,7 @@ class Llama:
         bos_tokens: List[int] = [cls_token_id if cls_token_id != -1 else bos_token_id]
         eos_tokens: List[int] = [
             sep_token_id if sep_token_id != -1 else self.token_eos()
-        ],
+        ]
 
         if (
             (isinstance(prompt, list) and suffix is None)
@@ -1206,7 +1206,7 @@ class Llama:
                 + (
                     self.tokenize(suffix.encode("utf-8"), add_bos=False, special=False)[
                         suffix_space_prefix:
-                    ],
+                    ]
                     if suffix
                     else []
                 )
@@ -1643,7 +1643,7 @@ class Llama:
                     "prompt_tokens": len(prompt_tokens),
                     "completion_tokens": len(completion_tokens),
                     "total_tokens": len(prompt_tokens) + len(completion_tokens),
-                }
+                },
             } 
             return
 
@@ -1683,7 +1683,7 @@ class Llama:
                     "utf-8", errors="ignore"
                 )
                 for i, token in enumerate(all_tokens)
-            ],
+            ]
             all_logprobs = Llama.logits_to_logprobs(self._scores)[token_offset:]
             # TODO: may be able to change this loop to use np.take_along_dim
             for idx, (token, token_str, logprobs_token) in enumerate(
@@ -1744,7 +1744,7 @@ class Llama:
                 "prompt_tokens": len(prompt_tokens),
                 "completion_tokens": len(completion_tokens),
                 "total_tokens": len(prompt_tokens) + len(completion_tokens),
-            }
+            },
         }
 
     def create_completion(
@@ -2038,7 +2038,7 @@ class Llama:
             logits_processor=logits_processor,
             grammar=grammar,
             logit_bias=logit_bias,
-            usage=usage
+            usage=usage,
         )
 
     def create_chat_completion_openai_v1(
@@ -2283,7 +2283,7 @@ class Llama:
         files = [
             file["name"] if isinstance(file, dict) else file
             for file in hffs.ls(repo_id, recursive=True)
-        ],
+        ]
 
         # split each file into repo_id, subfolder, filename
         file_list: List[str] = []
@@ -2389,7 +2389,8 @@ class LlamaState:
 
 
 LogitsProcessor = Callable[
-    [npt.NDArray[np.intc], npt.NDArray[np.single]], npt.NDArray[np.single] ],
+    [npt.NDArray[np.intc], npt.NDArray[np.single]], npt.NDArray[np.single]
+]
 
 
 class LogitsProcessorList(List[LogitsProcessor]):
