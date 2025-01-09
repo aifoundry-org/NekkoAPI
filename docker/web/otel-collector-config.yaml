@@ -1,0 +1,20 @@
+receivers:
+  otlp: # the OTLP receiver the app is sending logs to
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    logs/dev:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+

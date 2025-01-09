@@ -38,6 +38,9 @@ def example_simple():
         # Multiple forms of the word time: " time", "time", "Time" etc
         # Assumes GPT-4 tokenizer (works with llama models)
         # logit_bias={ 1712: -100, 3115: -100, 15487: -100, 892: -100, 1489: -100 },
+        user="username",
+        store=True,
+        metadata={"chat_title": "Asian vacation"},
         stream=True
     )
 

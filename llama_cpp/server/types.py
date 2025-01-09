@@ -280,7 +280,21 @@ class CreateChatCompletionRequest(BaseModel):
 
     # ignored or currently unsupported
     n: Optional[int] = 1
-    user: Optional[str] = Field(None)
+
+    user: Optional[str] = Field(
+        default=None,
+        description="A unique identifier for the end-user making the request."
+    )
+
+    metadata: Optional[JsonType] = Field(
+        default=None,
+        description="metadata attached to request."
+    )
+
+    store: Optional[Union[bool, str]] = Field(
+        default=None,
+        description="Store the result of chat completion for later use if true. If value is string, attach that string as a label to the stored completion."
+    )
 
     # llama.cpp specific parameters
     top_k: int = top_k_field

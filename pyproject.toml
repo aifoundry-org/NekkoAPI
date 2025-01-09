@@ -35,6 +35,9 @@ server = [
     "sse-starlette>=1.6.1",
     "starlette-context>=0.3.6,<0.4",
     "PyYAML>=5.1",
+    "opentelemetry-api>=1.29.0",
+    "opentelemetry-sdk>=1.29.0",
+    "opentelemetry-exporter-otlp>=1.29.0",
 ]
 test = [
     "openai>=1.57.2",
