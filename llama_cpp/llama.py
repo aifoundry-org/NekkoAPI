@@ -492,7 +492,7 @@ class Llama:
         if "tokenizer.chat_template" in self.metadata:
             template_choices["chat_template.default"] = self.metadata[
                 "tokenizer.chat_template"
-            ],
+            ]
 
         if self.verbose and template_choices:
             print(
@@ -951,7 +951,7 @@ class Llama:
                 tokens.extend(
                     draft_tokens.astype(int)[
                         : self._n_ctx - self.n_tokens - len(tokens)
-                    ],
+                    ]
                 )
 
     def create_embedding(
@@ -982,7 +982,7 @@ class Llama:
                 "index": idx,
             }
             for idx, emb in enumerate(embeds)
-        ],
+        ]
 
         return {
             "object": "list",
@@ -991,7 +991,7 @@ class Llama:
             "usage": {
                 "prompt_tokens": total_tokens,
                 "total_tokens": total_tokens,
-            }
+            },
         }
 
     def embed(
