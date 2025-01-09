@@ -305,7 +305,6 @@ def _convert_text_completion_to_chat(
             }
         ],
         "usage": completion["usage"],
-        
     }
 
 
