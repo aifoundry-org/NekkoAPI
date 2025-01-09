@@ -304,8 +304,7 @@ def _convert_text_completion_to_chat(
                 "finish_reason": completion["choices"][0]["finish_reason"],
             }
         ],
-        "usage": completion["usage"],
-        "system_fingerprint": completion['system_fingerprint']
+        "usage": completion["usage"]
         
     }
 
@@ -322,8 +321,7 @@ def _convert_text_completion_chunks_to_chat(
                 "created": chunk["created"],
                 "object": "chat.completion.chunk",
                 "choices": [],
-                "usage": chunk["usage"],
-                "system_fingerprint": chunk["system_fingerprint"]
+                "usage": chunk["usage"]
             }
             break
         if i == 0:
@@ -341,8 +339,7 @@ def _convert_text_completion_chunks_to_chat(
                         "logprobs": None,
                         "finish_reason": None,
                     }
-                ],
-                "system_fingerprint": chunk["system_fingerprint"]
+                ]
             }
         choices = chunk.get("choices")
         yield {
@@ -365,8 +362,7 @@ def _convert_text_completion_chunks_to_chat(
                     "finish_reason": (choices[0]["finish_reason"]
                                       if choices else None),
                 }
-            ],
-            "system_fingerprint": chunk["system_fingerprint"]
+            ]
         }
 
 
@@ -432,8 +428,7 @@ def _convert_completion_to_chat_function(
                     "finish_reason": "tool_calls",
                 }
             ],
-            "usage": completion["usage"],
-            "system_fingerprint": completion["system_fingerprint"]
+            "usage": completion["usage"]
         }
         return chat_completion
     else:
@@ -457,8 +452,7 @@ def _convert_completion_to_chat_function(
                         "created": chunk["created"],
                         "object": "chat.completion.chunk",
                         "choices": [],
-                        "usage": chunk["usage"],
-                        "system_fingerprint": chunk['system_fingerprint']
+                        "usage": chunk["usage"]
                     }
                     break
                 if first:
@@ -483,8 +477,7 @@ def _convert_completion_to_chat_function(
                                     "tool_calls": None,
                                 },
                             }
-                        ],
-                        "system_fingerprint": chunk['system_fingerprint']
+                        ]
                     }
                     yield {
                         "id": "chat" + chunk["id"],
@@ -518,8 +511,7 @@ def _convert_completion_to_chat_function(
                                     ],
                                 },
                             }
-                        ],
-                        "system_fingerprint": chunk['system_fingerprint']
+                        ]
                     }
                     first = False
                     continue
@@ -554,8 +546,7 @@ def _convert_completion_to_chat_function(
                                 ],
                             },
                         }
-                    ],
-                    "system_fingerprint": chunk['system_fingerprint']
+                    ]
                 }
 
             if id_ is not None and created is not None and model is not None:
@@ -576,8 +567,7 @@ def _convert_completion_to_chat_function(
                                 "tool_calls": None,
                             },
                         }
-                    ],
-                    "system_fingerprint": chunk['system_fingerprint']
+                    ]
                 }
                 if usage_chunk:
                     yield usage_chunk
@@ -1786,8 +1776,7 @@ def functionary_chat_handler(
                 "finish_reason": "tool_calls",
             }
         ],
-        usage=completion["usage"],
-        system_fingerprint=completion["system_fingerprint"],
+        usage=completion["usage"]
     )
 
 
@@ -2687,8 +2676,7 @@ def functionary_v1_v2_chat_handler(
                     "finish_reason": "tool_calls" if len(tool_calls) > 0 else "stop",
                 }
             ],
-            usage=completion["usage"],
-            system_fingerprint=completion["system_fingerprint"]
+            usage=completion["usage"]
         )
 
 

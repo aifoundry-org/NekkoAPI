@@ -194,7 +194,6 @@ class Llama:
         """
         self.verbose = verbose
         self._stack = contextlib.ExitStack()
-        self._system_fingerprint = os.environ.get("HOSTNAME", 'localhost')
 
         set_verbose(verbose)
 
@@ -992,8 +991,7 @@ class Llama:
             "usage": {
                 "prompt_tokens": total_tokens,
                 "total_tokens": total_tokens,
-            },
-            "system_fingerprint": self._system_fingerprint
+            }
         }
 
     def embed(
@@ -1459,8 +1457,7 @@ class Llama:
                                     "logprobs": logprobs_or_none,
                                     "finish_reason": None,
                                 }
-                            ],
-                            "system_fingerprint": self._system_fingerprint
+                            ]
                         }
                 else:
                     while len(remaining_tokens) > 0:
@@ -1502,8 +1499,7 @@ class Llama:
                                     "logprobs": None,
                                     "finish_reason": None,
                                 }
-                            ],
-                            "system_fingerprint": self._system_fingerprint
+                            ]
                         }
 
             if len(completion_tokens) >= max_tokens:
@@ -1597,8 +1593,7 @@ class Llama:
                                 "logprobs": logprobs_or_none,
                                 "finish_reason": None,
                             }
-                        ],
-                        "system_fingerprint": self._system_fingerprint
+                        ]
                     }
                     break
                 returned_tokens += 1
@@ -1616,8 +1611,7 @@ class Llama:
                             "logprobs": logprobs_or_none,
                             "finish_reason": None,
                         }
-                    ],
-                    "system_fingerprint": self._system_fingerprint
+                    ]
                 }
             yield {
                 "id": completion_id,
@@ -1631,8 +1625,7 @@ class Llama:
                         "logprobs": None,
                         "finish_reason": finish_reason,
                     }
-                ],
-                "system_fingerprint": self._system_fingerprint
+                ]
             }
             if self.cache:
                 if self.verbose:
@@ -1650,8 +1643,7 @@ class Llama:
                     "prompt_tokens": len(prompt_tokens),
                     "completion_tokens": len(completion_tokens),
                     "total_tokens": len(prompt_tokens) + len(completion_tokens),
-                },
-                "system_fingerprint": self._system_fingerprint
+                }
             } 
             return
 
@@ -1752,8 +1744,7 @@ class Llama:
                 "prompt_tokens": len(prompt_tokens),
                 "completion_tokens": len(completion_tokens),
                 "total_tokens": len(prompt_tokens) + len(completion_tokens),
-            },
-            "system_fingerprint": self._system_fingerprint
+            }
         }
 
     def create_completion(
@@ -1851,7 +1842,6 @@ class Llama:
             chunks: Iterator[CreateCompletionStreamResponse] = completion_or_chunks
             return chunks
         completion: Completion = next(completion_or_chunks)  # type: ignore
-        completion['system_fingerprint'] = self._system_fingerprint
         return completion
 
     def __call__(
