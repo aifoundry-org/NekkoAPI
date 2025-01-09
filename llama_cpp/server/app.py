@@ -500,8 +500,13 @@ async def create_chat_completion(
         # If no exception was raised from first_response, we can assume that
         # the iterator is valid and we can use it to stream the response.
         def iterator() -> Iterator[llama_cpp.ChatCompletionChunk]:
+            first_response['system_fingerprint'] = _server_settings.system_fingerprint
             yield first_response
-            yield from iterator_or_completion
+
+            for entity in iterator_or_completion:
+                entity['system_fingerprint'] = _server_settings.system_fingerprint
+                yield entity
+
             exit_stack.close()
 
         send_chan, recv_chan = anyio.create_memory_object_stream(10) # type: ignore
@@ -519,6 +524,7 @@ async def create_chat_completion(
         )
     else:
         exit_stack.close()
+        iterator_or_completion['system_fingerprint'] = _server_settings.system_fingerprint
         return iterator_or_completion
 
 

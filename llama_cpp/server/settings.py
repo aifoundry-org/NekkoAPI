@@ -8,6 +8,8 @@ from typing_extensions import Self
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 
+import platform
+
 import llama_cpp
 
 # Disable warning for model and model_alias settings
@@ -228,6 +230,10 @@ class ServerSettings(BaseSettings):
     root_path: str = Field(
         default="",
         description="The root path for the server. Useful when running behind a reverse proxy.",
+    )
+    system_fingerprint: str = Field(
+        default_factory=lambda: platform.node(),
+        description="The info about current running server, hostname"
     )
 
 
