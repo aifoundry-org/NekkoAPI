@@ -4,6 +4,7 @@ import os
 import json
 import typing
 import contextlib
+import uuid
 
 from threading import Lock
 from functools import partial
@@ -43,6 +44,10 @@ from llama_cpp.server.types import (
     DetokenizeInputResponse,
 )
 from llama_cpp.server.errors import RouteErrorHandler
+from llama_cpp.server.transaction_logs import (
+    setup_logger,
+    ChatCompletionEvent
+)
 
 
 router = APIRouter(route_class=RouteErrorHandler)
@@ -150,6 +155,8 @@ def create_app(
 
     if server_settings.disable_ping_events:
         set_ping_message_factory(lambda: bytes())
+
+    app.state.transaction_logger = setup_logger()
 
     return app
 
@@ -442,11 +449,40 @@ async def create_chat_completion(
         }
     ),
 ) -> llama_cpp.ChatCompletion:
+    transaction_id = str(uuid.uuid4())
+    completion_event: ChatCompletionEvent = {
+        "transaction_id": transaction_id,
+        "transaction_type": "chat_completion",
+    }
+    transaction_logger = request.app.state.transaction_logger
+    if body.user:
+        completion_event["user"] = body.user
+    if body.metadata:
+        completion_event["metadata"] = json.dumps(body.metadata)
+    if body.store:
+        completion_event["store"] = body.store
+        completion_event["messages"] = json.dumps(body.messages)
+    transaction_logger(completion_event)
+
+    # Will be used to store completion response if required.
+    completion_result = []
+
+    def close_transaction():
+        if body.store:
+            closing_event: ChatCompletionEvent = {
+                "transaction_id": transaction_id,
+                "transaction_type": "chat_completion",
+                "store": body.store,
+                "completion": json.dumps(completion_result),
+            }
+            transaction_logger(closing_event)
+
     # This is a workaround for an issue in FastAPI dependencies
     # where the dependency is cleaned up before a StreamingResponse
     # is complete.
     # https://github.com/tiangolo/fastapi/issues/11143
     exit_stack = contextlib.ExitStack()
+    exit_stack.callback(close_transaction)
     llama_proxy = await run_in_threadpool(
         lambda: exit_stack.enter_context(contextlib.contextmanager(get_llama_proxy)())
     )
@@ -458,6 +494,8 @@ async def create_chat_completion(
     exclude = {
         "n",
         "user",
+        "metadata",
+        "store",
         "max_completion_tokens",
         "stream_options"
     }
@@ -501,10 +539,12 @@ async def create_chat_completion(
         # the iterator is valid and we can use it to stream the response.
         def iterator() -> Iterator[llama_cpp.ChatCompletionChunk]:
             first_response['system_fingerprint'] = _server_settings.system_fingerprint
+            completion_result.append(first_response)
             yield first_response
 
             for entity in iterator_or_completion:
                 entity['system_fingerprint'] = _server_settings.system_fingerprint
+                completion_result.append(entity)
                 yield entity
 
             exit_stack.close()
@@ -523,6 +563,7 @@ async def create_chat_completion(
             ping_message_factory=_ping_message_factory, # type: ignore
         )
     else:
+        completion_result.append(iterator_or_completion)
         exit_stack.close()
         iterator_or_completion['system_fingerprint'] = _server_settings.system_fingerprint
         return iterator_or_completion

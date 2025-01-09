@@ -13,6 +13,7 @@ services:
       - ../../examples/settings.json:/app/settings.json
     environment:
       - CONFIG_FILE=settings.json
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel_collector:4317
     networks:
       - nekko_api-network
     expose:
@@ -63,6 +64,18 @@ services:
         condition: service_healthy
       ui:
         condition: service_healthy
+
+  otel_collector:
+    platform: linux/amd64
+    image: otel/opentelemetry-collector:latest
+    networks:
+      - nekko_api-network
+    ports:
+      - 4317 # OTLP gRPC
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    
 
 networks:
   nekko_api-network:
