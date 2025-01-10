@@ -504,3 +504,24 @@ def test_system_fingerprint(setup_openai_client, test_data):
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
 
+
+def test_model_name_from_response(setup_openai_client):
+    """Test completion request and check model info exists"""
+    url = "http://localhost:8000/v1/"
+    model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
+    messages = ConstantData.MODEL_MESSAGES
+
+    try:
+        client = openai.OpenAI(
+            base_url=url, api_key=openai.api_key
+        )
+
+        completion = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            max_completion_tokens=200,
+        )
+
+        assert completion.model == model
+    except openai.OpenAIError as e:
+        pytest.fail(f"OpenAI API call failed: {e}")
