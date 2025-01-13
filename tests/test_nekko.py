@@ -2,6 +2,7 @@ import json
 import uuid
 import openai
 import pytest
+import datetime
 from constant_data import ConstantData
 
 """
@@ -523,5 +524,62 @@ def test_model_name_from_response(setup_openai_client):
         )
 
         assert completion.model == model
+    except openai.OpenAIError as e:
+        pytest.fail(f"OpenAI API call failed: {e}")
+
+
+CREATED_TIMESTAMP_COMPLETITION = {
+    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "messages": ConstantData.MESSAGE_BASIC,
+    "stream": False,
+    "kwargs": {
+        "max_completion_tokens": 200
+    }
+}
+
+CREATED_TIMESTAMP_STREAM = {
+    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
+    "messages": ConstantData.MESSAGE_BASIC,
+    "stream": True,
+    "kwargs": {
+        "max_completion_tokens": 200
+    }
+}
+
+import sys
+@pytest.mark.parametrize(
+    "test_data",
+    [
+        CREATED_TIMESTAMP_COMPLETITION,
+        CREATED_TIMESTAMP_STREAM,
+    ]
+)
+def test_created_timestamp(setup_openai_client, test_data):
+    """Test completion and stream requests and then checks that created timestamp is correct"""
+
+    url = "http://localhost:8000/v1/"
+    current_timestamp = datetime.datetime.now().timestamp()
+
+    # Seconds between sent time and time when message was recieved
+    max_delay = 5
+
+    try:
+        client = openai.OpenAI(
+            base_url=url, api_key=openai.api_key
+        )
+
+        completion = client.chat.completions.create(
+            model=test_data["model"],
+            messages=test_data["messages"],
+            stream=test_data['stream'],
+            **test_data["kwargs"]
+        )
+
+        if test_data['stream']:
+            for chunk in completion:
+                assert chunk.created - current_timestamp < max_delay
+        else:
+            assert completion.created - current_timestamp < max_delay
+
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
