@@ -505,29 +505,6 @@ def test_system_fingerprint(setup_openai_client, test_data):
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
 
-
-def test_model_name_from_response(setup_openai_client):
-    """Test completion request and check model info exists"""
-    url = "http://localhost:8000/v1/"
-    model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
-    messages = ConstantData.MODEL_MESSAGES
-
-    try:
-        client = openai.OpenAI(
-            base_url=url, api_key=openai.api_key
-        )
-
-        completion = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            max_completion_tokens=200,
-        )
-
-        assert completion.model == model
-    except openai.OpenAIError as e:
-        pytest.fail(f"OpenAI API call failed: {e}")
-
-
 SIMPLE_COMPLETITION = {
     "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
     "messages": ConstantData.MESSAGE_BASIC,
@@ -545,6 +522,39 @@ SIMPLE_STREAM = {
         "max_completion_tokens": 200
     }
 }
+
+
+@pytest.mark.parametrize(
+    "test_data",
+    [
+        SIMPLE_COMPLETITION,
+        SIMPLE_STREAM,
+    ]
+)
+def test_model_name_from_response(setup_openai_client, test_data):
+    """Test completion request and check model info exists"""
+    url = "http://localhost:8000/v1/"
+    model = test_data['model']
+
+    try:
+        client = openai.OpenAI(
+            base_url=url, api_key=openai.api_key
+        )
+
+        completion = client.chat.completions.create(
+            model=model,
+            messages=test_data['messages'],
+            stream=test_data['stream'],
+            **test_data['kwargs']
+        )
+
+        if test_data['stream']:
+            for chunk in completion:
+                assert chunk.model == model
+        else:
+            assert completion.model == model
+    except openai.OpenAIError as e:
+        pytest.fail(f"OpenAI API call failed: {e}")
 
 
 @pytest.mark.parametrize(
@@ -618,3 +628,36 @@ def test_object_type(setup_openai_client, test_data):
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
 
+
+@pytest.mark.parametrize(
+    "test_data",
+    [
+        SIMPLE_COMPLETITION,
+        SIMPLE_STREAM,
+    ]
+)
+def test_returning_if(setup_openai_client, test_data):
+    """Test completion and stream requests is there is an id"""
+
+    url = "http://localhost:8000/v1/"
+
+    try:
+        client = openai.OpenAI(
+            base_url=url, api_key=openai.api_key
+        )
+
+        completion = client.chat.completions.create(
+            model=test_data["model"],
+            messages=test_data["messages"],
+            stream=test_data['stream'],
+            **test_data["kwargs"]
+        )
+
+        if test_data['stream']:
+            for chunk in completion:
+                assert chunk.id is not None and chunk.id != ''
+        else:
+            assert completion.id is not None and completion.id != ''
+
+    except openai.OpenAIError as e:
+        pytest.fail(f"OpenAI API call failed: {e}")
