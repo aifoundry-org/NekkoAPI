@@ -546,7 +546,7 @@ CREATED_TIMESTAMP_STREAM = {
     }
 }
 
-import sys
+
 @pytest.mark.parametrize(
     "test_data",
     [
