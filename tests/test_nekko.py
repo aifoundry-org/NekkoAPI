@@ -636,7 +636,7 @@ def test_object_type(setup_openai_client, test_data):
         SIMPLE_STREAM,
     ]
 )
-def test_returning_if(setup_openai_client, test_data):
+def test_returning_id(setup_openai_client, test_data):
     """Test completion and stream requests is there is an id"""
 
     url = "http://localhost:8000/v1/"
