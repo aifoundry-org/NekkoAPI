@@ -102,7 +102,7 @@ class ConstantData:
         }
     ]
 
-    MODEL_MESSAGES = [
+    SIMPLE_MESSAGES = [
         {
             "role": "system",
             "content": "You are a helpful AI assitant named Nekko."

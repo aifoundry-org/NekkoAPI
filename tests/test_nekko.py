@@ -516,7 +516,7 @@ SIMPLE_COMPLETITION = {
 
 SIMPLE_STREAM = {
     "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE_BASIC,
+    "messages": ConstantData.SIMPLE_MESSAGES,
     "stream": True,
     "kwargs": {
         "max_completion_tokens": 200
@@ -658,6 +658,73 @@ def test_returning_id(setup_openai_client, test_data):
                 assert chunk.id is not None and chunk.id != ''
         else:
             assert completion.id is not None and completion.id != ''
+
+    except openai.OpenAIError as e:
+        pytest.fail(f"OpenAI API call failed: {e}")
+
+
+DELTA_SIMPLE_STREAM = {
+    **SIMPLE_STREAM,
+}
+
+DELTA_FUNCTION_CALL_STREAM = {
+    **CHAT_COMPLETION_TOOLS,
+    'stream': True,
+}
+
+DELTA_LOGBROBS_STREAM = {
+    **CHAT_COMPLETION_LOGPROBS_3,
+    'stream': True,
+}
+
+
+@pytest.mark.parametrize(
+    "test_data",
+    [
+        DELTA_SIMPLE_STREAM,        # content
+        DELTA_FUNCTION_CALL_STREAM, # function_call
+        DELTA_LOGBROBS_STREAM,      # logprobs
+    ]
+)
+def test_streming_delta(setup_openai_client, test_data):
+    """Test completion and stream requests is there is an id"""
+
+    url = "http://localhost:8000/v1/"
+
+    try:
+        client = openai.OpenAI(
+            base_url=url, api_key=openai.api_key
+        )
+
+        data = {k: v for k, v in test_data.items() if k != 'kwargs'}
+
+        stream = client.chat.completions.create(
+            **data,
+            **test_data["kwargs"]
+        )
+
+        deltas = [(chunk.choices[0].delta, chunk.choices[0]) for chunk in stream]
+        
+        assert deltas[0][0].role == 'assistant'
+
+        # TODO: Add tests for refusal, tool_calls (except function)
+        if 'tools' in test_data  and 'function' in test_data['tools'][0]:
+            # test delta for function stream
+            assert all(
+                delta.function_call is not None and
+                delta.tool_calls is not None
+                for delta, _ in deltas[1:]
+            )
+        elif 'logprobs' in test_data:
+            # test delta for logprobs stream
+            assert all(
+                delta.content is not None and
+                chunk.logprobs is not None
+                for delta, chunk in deltas[1:-2]
+            )
+        else:
+            # test delta for usual completion stream
+            assert all(delta.content is not None for delta, _ in deltas[1:-2])
 
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
