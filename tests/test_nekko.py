@@ -473,6 +473,7 @@ SYSTEM_FINGEPRINT_STREAM = {
     }
 }
 
+
 @pytest.mark.parametrize(
     "test_data",
     [
@@ -504,6 +505,7 @@ def test_system_fingerprint(setup_openai_client, test_data):
 
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
+
 
 SIMPLE_COMPLETITION = {
     "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
@@ -624,6 +626,11 @@ def test_object_type(setup_openai_client, test_data):
                 assert chunk.object == 'chat.completion.chunk'
         else:
             assert completion.object == 'chat.completion'
+            assert type(completion.usage.prompt_tokens) is int
+            assert type(completion.usage.completion_tokens) is int
+            assert type(completion.usage.total_tokens) is int
+            assert type(completion.usage.completion_tokens_details) is None or object
+            assert type(completion.usage.prompt_tokens_details) is None or object
 
     except openai.OpenAIError as e:
         pytest.fail(f"OpenAI API call failed: {e}")
