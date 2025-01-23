@@ -3,281 +3,85 @@ import uuid
 import openai
 import pytest
 import datetime
-from constant_data import ConstantData
 
-"""
-Data for specific tests
-"""
 
-CHAT_COMPLETION_BASIC = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE_BASIC,
-    "kwargs": {
-        "max_completion_tokens": 200
-    }
-}
-
-CHAT_COMPLETION_FREQUENCY_PENALTY = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE_BASIC,
-    "kwargs": {
-        "max_completion_tokens": 200,
-        "frequency_penalty": 2.0,
-    }
-}
-
-CHAT_COMPLETION_PRESENCE_PENALTY = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE_BASIC,
-    "kwargs": {
-        "max_completion_tokens": 200,
-        "presence_penalty": 2.0,
-    }
-}
-
-CHAT_COMPLETION_LOGITBIAS = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE_BASIC,
-    "kwargs": {
-        "max_completion_tokens": 200,
-        # Variations of "time":
-        "logit_bias": {655: -100, 1711: -100, 2256: -100}
-    }
-}
+MODEL = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
 
 
 @pytest.fixture(scope="session")
-def setup_openai_client():
+def openai_client():
     """Fixture to set up OpenAI client with the API key."""
     openai.api_key = str(uuid.uuid4())
     if not openai.api_key:
         pytest.fail("OPENAI_API_KEY environment variable is not set")
-
-
-@pytest.mark.parametrize(
-    "test_data",
-    [
-        CHAT_COMPLETION_BASIC,
-        CHAT_COMPLETION_FREQUENCY_PENALTY,
-        CHAT_COMPLETION_PRESENCE_PENALTY,
-        CHAT_COMPLETION_LOGITBIAS
-    ]
-)
-def test_openai_completion_message(setup_openai_client, test_data):
-    """Test completion request and check the received message."""
-    url = "http://localhost:8000/v1/"
-
-    try:
-        client = openai.OpenAI(
-            base_url=url, api_key=openai.api_key
-        )
-        # Make a basic completion request
-        completion = client.chat.completions.create(
-            model=test_data["model"],
-            messages=test_data["messages"],
-            **test_data["kwargs"]
-        )
-
-        # Assert the response is OK
-        assert completion.choices[0].message is not None
-
-    except openai.OpenAIError as e:
-        pytest.fail(f"OpenAI API call failed: {e}")
-
-
-CHAT_COMPLETION_LOGPROBS_3 = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE_LOGPROBS,
-    "logprobs": True,
-    "kwargs": {
-        "max_completion_tokens": 200,
-        "top_logprobs": 3
-    }
-}
-
-CHAT_COMPLETION_LOGPROBS_NULL = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE_LOGPROBS,
-    "logprobs": False,
-    "kwargs": {
-        "max_completion_tokens": 200
-    }
-}
-
-
-@pytest.mark.parametrize(
-    "test_data",
-    [
-        CHAT_COMPLETION_LOGPROBS_3,
-        CHAT_COMPLETION_LOGPROBS_NULL
-    ]
-)
-def test_openai_completion_logpobs(setup_openai_client, test_data):
-    """Test completion request and check the logprobs."""
-    url = "http://localhost:8000/v1/"
-
-    try:
-        client = openai.OpenAI(
-            base_url=url, api_key=openai.api_key
-        )
-        # Make a basic completion request
-        completion = client.chat.completions.create(
-            model=test_data["model"],
-            messages=test_data["messages"],
-            logprobs=test_data["logprobs"],
-            **test_data["kwargs"]
-        )
-        logprobs = completion.choices[0].logprobs
-
-        # Check the logprobs data
-        if not test_data["logprobs"]:
-            assert logprobs is None
-        else:
-            assert logprobs is not None
-            for prob in logprobs.content:
-                assert prob.token is not None
-                assert type(prob.logprob) == float
-                for top_prob in prob.top_logprobs:
-                    assert top_prob.token is not None
-                    assert type(top_prob.logprob) == float
-
-    except openai.OpenAIError as e:
-        pytest.fail(f"OpenAI API call failed: {e}")
-
-
-CHAT_COMPLETION_TOOLS = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE_TOOLS,
-    "tools": ConstantData.TOOLS_FUNCTION,
-    "tool_choice": {
-        "type": "function",
-        "function": {"name": "display_weather"}
-    },
-    ""
-    "kwargs": {
-        "max_completion_tokens": 200
-
-    }
-}
-
-
-@pytest.mark.parametrize(
-    "test_data",
-    [
-        CHAT_COMPLETION_TOOLS
-    ]
-)
-def test_openai_completion_tools(setup_openai_client, test_data):
-    """Test completion request and check tools."""
-    url = "http://localhost:8000/v1/"
-
-    try:
-        client = openai.OpenAI(
-            base_url=url, api_key=openai.api_key
-        )
-        # Make a completion request
-        completion = client.chat.completions.create(
-            model=test_data["model"],
-            messages=test_data["messages"],
-            tools=test_data["tools"],
-            tool_choice=test_data["tool_choice"],
-            **test_data["kwargs"]
-        )
-
-        tools = completion.choices[0].message.tool_calls
-        for tool in tools:
-            assert tool.type == test_data["tools"][0]["type"]
-            assert tool.function.name == test_data["tools"][0]["function"]["name"]
-
-    except openai.OpenAIError as e:
-        pytest.fail(f"OpenAI API call failed: {e}")
-
-
-CHAT_COMPLETION_STOP = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE_STOP,
-    "stop": ["K", "k"],
-    "kwargs": {
-        "max_completion_tokens": 200
-    }
-}
-
-
-@pytest.mark.parametrize(
-    "test_data",
-    [
-        CHAT_COMPLETION_STOP
-    ]
-)
-def test_openai_completion_stop(setup_openai_client, test_data):
-    """Test completion request and check the stop function ."""
-    url = "http://localhost:8000/v1/"
-
-    try:
-        client = openai.OpenAI(
-            base_url=url, api_key=openai.api_key
-        )
-        # Make a basic completion request
-        completion = client.chat.completions.create(
-            model=test_data["model"],
-            messages=test_data["messages"],
-            stop=test_data["stop"],
-            **test_data["kwargs"]
-        )
-
-        # Check the stop function
-        assert completion.choices[0].message is not None
-        for stop_string in test_data["stop"]:
-            assert stop_string not in completion.choices[0].message
-
-    except openai.OpenAIError as e:
-        pytest.fail(f"OpenAI API call failed: {e}")
-
-
-def get_response(client, **kwargs) -> str:
-    result = str()
-
-    stream = client.chat.completions.create(**kwargs)
-    for chunk in stream:
-        x = chunk.choices[0].delta.content
-        if x is None:
-            continue
-        result += str(x)
-
-    return result
-
-
-def test_seed(setup_openai_client, seed=1337):
-    url = "http://localhost:8000/v1/"
-    try:
-        client = openai.OpenAI(
-            base_url=url, api_key=openai.api_key
-        )
-
-        base_params = {
-            "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-            "messages": ConstantData.MESSAGE_SEED,
-            "stream": True
-        }
-
-        result1 = get_response(client=client, **base_params, seed=seed)
-        result2 = get_response(client=client, **base_params, seed=seed)
-        result3 = get_response(client=client, **base_params, seed=seed+1)
-
-        assert result1 == result2
-        assert result1 != result3
-
-    except openai.OpenAIError as e:
-        pytest.fail(f"OpenAI API call failed: {e}")
-
-
-def test_chat_max_tokens(setup_openai_client):
-    model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
     url = "http://localhost:8000/v1/"
     client = openai.OpenAI(base_url=url, api_key=openai.api_key)
+    return client
 
-    completion_chunks = client.chat.completions.create(
-        model=model,
+
+# TODO: separate into individual tests and assert effects of parameters
+@pytest.mark.parametrize(
+    "test_data",
+    [
+        {},
+        {"frequency_penalty": 2.0},
+        {"presence_penalty": 2.0},
+        # logit bias token ids correspond to variatios of "Time"
+        # TODO: use alphabet example
+        {"logit_bias": {655: -100, 1711: -100, 2256: -100}}
+    ]
+)
+def test_chat_message(openai_client, test_data):
+    """Test completion request and check the received message."""
+    completion = openai_client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": "What's the capital of France?"}],
+        max_completion_tokens=3,
+        **test_data
+    )
+
+    # Assert the response is OK
+    assert completion.choices[0].message
+
+
+def test_chat_stop(openai_client):
+    """Test completion request and check the stop function ."""
+    stops = ["K", "k"]
+    completion = openai_client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": "Write the English alphabet"}],
+        stop=stops,
+        max_completion_tokens=100,
+    )
+
+    # Check the stop function
+    assert completion.choices[0].message is not None
+    assert completion.choices[0].finish_reason == "stop"
+    for stop_string in stops:
+        assert stop_string not in completion.choices[0].message.content
+
+
+def test_chat_seed(openai_client, seed=1337):
+    params = {
+        "model": MODEL,
+        "max_completion_tokens": 10,
+        "messages": [{"role": "user", "content": "1+1="}],
+    }
+
+    def completion(**kwargs):
+        return openai_client.chat.completions.create(**kwargs).choices[0].message.content
+
+    result1 = completion(**params, seed=seed)
+    result2 = completion(**params, seed=seed)
+    result3 = completion(**params, seed=seed+1)
+
+    assert result1 == result2
+    assert result1 != result3
+
+
+def test_chat_max_tokens(openai_client):
+    completion_chunks = openai_client.chat.completions.create(
+        model=MODEL,
         messages=[{"role": "user", "content": "Tell me a story"}],
         max_tokens=1,
         stream=True
@@ -290,13 +94,9 @@ def test_chat_max_tokens(setup_openai_client):
     assert len(token_chunks) == 1
 
 
-def test_chat_stream_options(setup_openai_client):
-    model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
-    url = "http://localhost:8000/v1/"
-    client = openai.OpenAI(base_url=url, api_key=openai.api_key)
-
-    completion_chunks = client.chat.completions.create(
-        model=model,
+def test_chat_stream_options(openai_client):
+    completion_chunks = openai_client.chat.completions.create(
+        model=MODEL,
         messages=[{"role": "user", "content": "Tell me a story"}],
         max_tokens=3,
         stream=True,
@@ -316,10 +116,8 @@ def test_chat_stream_options(setup_openai_client):
     assert usage.total_tokens == 37
 
 
-def test_chat_stream_options_tools(setup_openai_client):
-    model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
-    url = "http://localhost:8000/v1/"
-    client = openai.OpenAI(base_url=url, api_key=openai.api_key)
+def test_chat_tools(openai_client):
+    """Test completion request and check tools."""
     tools = [
         {
             "type": "function",
@@ -340,8 +138,58 @@ def test_chat_stream_options_tools(setup_openai_client):
         }
     ]
 
-    completion_chunks = client.chat.completions.create(
-        model=model,
+    result = openai_client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": "Close the door"}],
+        tools=tools,
+        tool_choice={
+            "type": "function",
+            "function": {"name": "set_door"}
+        },
+    )
+
+    assert result.choices[0].finish_reason == "tool_calls"
+
+    assert result.choices[0].message.function_call  # deprecated
+    assert result.choices[0].message.content is None
+    tool_calls = result.choices[0].message.tool_calls
+    assert tool_calls
+    assert tool_calls[0].id
+    assert tool_calls[0].type == "function"
+    function = tool_calls[0].function
+    assert function
+    assert function.name == "set_door"
+
+    # Check function arguments schema is respected
+    arguments_json = tool_calls[0].function.arguments
+    arguments = json.loads(arguments_json)
+    assert isinstance(arguments, dict)
+    assert isinstance(arguments["open"], bool)
+
+
+def test_chat_stream_tools(openai_client):
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "description": "Set door status",
+                "name": "set_door",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "open": {"type": "boolean"},
+                    },
+                    "required": [
+                        "open",
+                    ],
+                    "additionalProperties": False
+                }
+            }
+        }
+    ]
+
+    stream = openai_client.chat.completions.create(
+        model=MODEL,
         messages=[{"role": "user", "content": "Close the door"}],
         tools=tools,
         tool_choice={
@@ -352,386 +200,171 @@ def test_chat_stream_options_tools(setup_openai_client):
         stream_options={"include_usage": True}
     )
 
-    chunks = list(completion_chunks)
+    chunks = list(stream)
 
+    # Some chunks (eg initial, stop, last) may not have content.
+    tool_chunks = [chunk for chunk in chunks
+                   if chunk.choices and chunk.choices[0].delta.tool_calls]
+
+    assert len(tool_chunks) > 0
+
+    call_id = tool_chunks[0].choices[0].delta.tool_calls[0].id
+    assert call_id
+    for chunk in tool_chunks:
+        assert chunk.choices[0].delta.function_call  # deprecated
+        tool_calls = chunk.choices[0].delta.tool_calls
+        assert tool_calls
+        # All chunks have same id
+        assert tool_calls[0].id == call_id
+        assert tool_calls[0].type == "function"
+        function = tool_calls[0].function
+        assert function
+        assert function.name == "set_door"
+
+    # Check function arguments schema is respected
+    arguments_json = ''.join(chunk.choices[0].delta.tool_calls[0].function.arguments
+                             for chunk in tool_chunks)
+    arguments = json.loads(arguments_json)
+    assert isinstance(arguments, dict)
+    assert isinstance(arguments["open"], bool)
+
+    # Tool calling has independent "usage" codepath, therefore this check.
     usage = chunks[-1].usage
     assert usage.prompt_tokens == 33
     assert usage.completion_tokens > 0
     assert usage.total_tokens == usage.prompt_tokens + usage.completion_tokens
 
 
-# TODO: refactor into separate tests?
-def test_chat_response(setup_openai_client):
-    model = "models/SmolLM2-135M-Instruct-Q6_K.gguf"
-    url = "http://localhost:8000/v1/"
-    client = openai.OpenAI(base_url=url, api_key=openai.api_key)
-
-    completion = client.chat.completions.create(
-        model=model,
+def chat_completion_finish_reason(openai_client):
+    completion = openai_client.chat.completions.create(
+        model=MODEL,
         messages=[{"role": "user", "content": "What is the capital of France?"}],
         max_completion_tokens=1,
     )
+
     finish_reason = completion.choices[0].finish_reason
     assert finish_reason == "length"
     assert isinstance(completion.choices[0].message.content, str)
     assert completion.choices[0].message.role == "assistant"
     assert completion.choices[0].index == 0
 
-    completion = client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": "What is the capital of France?"}],
-        stop=["38634"],  # corresponds to `Paris` for smolm2
-        max_completion_tokens=1000,
-    )
-    finish_reason = completion.choices[0].finish_reason
-    assert finish_reason == "stop"
 
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "description": "Set door status",
-                "name": "set_door",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "open": {"type": "boolean"},
-                    },
-                    "required": [
-                        "open",
-                    ],
-                    "additionalProperties": False
-                }
-            }
-        }
-    ]
+def test_chat_response(openai_client):
+    top_logprobs = 3
 
-    completion = client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": "Open the door"}],
-        tools=tools,
-        tool_choice={
-            "type": "function",
-            "function": {"name": "set_door"}
-        },
+    request_timestamp = datetime.datetime.now().timestamp()
+
+    completion = openai_client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": "Give me a random letter."}],
+        max_completion_tokens=1,
+        logprobs=True,
+        top_logprobs=top_logprobs,
     )
-    finish_reason = completion.choices[0].finish_reason
-    assert finish_reason == "tool_calls"
+
+    # Sets id
+    assert completion.id
+
+    # Sets model
+    assert completion.model == MODEL
+
+    # Sets correct object type
+    assert completion.object == 'chat.completion'
+
+    # Sets creation timestamp
+    assert completion.created - request_timestamp < 5  # seconds
+
+    # Sets system fingerprint
+    assert completion.system_fingerprint
+
+    # Returns expected role.
     assert completion.choices[0].message.role == "assistant"
-    assert completion.choices[0].message.content is None
-    tool_call = completion.choices[0].message.tool_calls[0]
-    assert tool_call.type == "function"
-    assert tool_call.function.name == "set_door"
-    assert isinstance(json.loads(tool_call.function.arguments), dict)
 
-    functions = [
-        {
-            "description": "Set door status",
-            "name": "set_door",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "open": {"type": "boolean"},
-                },
-                "required": [
-                    "open",
-                ],
-                "additionalProperties": False
-            }
+    # Choice has correct index set (multiple choices not supported yet).
+    assert completion.choices[0].index == 0
+
+    logprobs = completion.choices[0].logprobs
+    for logprob in logprobs.content:
+        assert isinstance(logprob.token, str)
+        assert isinstance(logprob.logprob, float)
+        assert len(logprob.top_logprobs) == top_logprobs
+        top_logprob = logprob.top_logprobs[0]
+        assert isinstance(top_logprob.token, str)
+        assert isinstance(top_logprob.logprob, float)
+
+    usage = completion.usage
+    assert usage.prompt_tokens == 36
+    assert usage.completion_tokens == 1
+    assert usage.total_tokens == 37
+
+
+def test_chat_streaming_response(openai_client):
+    top_logprobs = 3
+
+    request_timestamp = datetime.datetime.now().timestamp()
+
+    stream = openai_client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": "Give me a random letter."}],
+        max_completion_tokens=1,
+        logprobs=True,
+        top_logprobs=top_logprobs,
+        stream=True,
+        stream_options={
+            "include_usage": True
         }
-    ]
-
-    completion = client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": "Open the door"}],
-        functions=functions,
-        function_call={"name": "set_door", },
     )
 
-    assert completion.choices[0].message.role == "assistant"
-    assert completion.choices[0].message.content is None
-    function_call = completion.choices[0].message.function_call
-    assert function_call.name == "set_door"
-    assert isinstance(json.loads(function_call.arguments), dict)
+    chunks = list(stream)
 
+    # All chunks have the same id.
+    completion_id = chunks[0].id
+    assert completion_id
+    for chunk in chunks:
+        assert chunk.id == completion_id
 
-SYSTEM_FINGEPRINT = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.SYSTEM_FINGERPRINT_MESSAGES,
-    "stream": False,
-    "kwargs": {
-        "max_completion_tokens": 200
-    }
-}
+    # Sets model name
+    for chunk in chunks:
+        assert chunk.model == MODEL
 
-SYSTEM_FINGEPRINT_STREAM = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.SYSTEM_FINGERPRINT_MESSAGES,
-    "stream": True,
-    "kwargs": {
-        "max_completion_tokens": 200
-    }
-}
+    # Sets correct object type
+    for chunk in chunks:
+        assert chunk.object == 'chat.completion.chunk'
 
+    # Sets creation timestamp
+    for chunk in chunks:
+        assert chunk.created - request_timestamp < 5  # seconds
 
-@pytest.mark.parametrize(
-    "test_data",
-    [
-        SYSTEM_FINGEPRINT,
-        SYSTEM_FINGEPRINT_STREAM
-    ]
-)
-def test_system_fingerprint(setup_openai_client, test_data):
-    """Test completion request and check the stop function ."""
-    url = "http://localhost:8000/v1/"
+    # Sets system fingerprint
+    for chunk in chunks:
+        assert chunk.system_fingerprint
 
-    try:
-        client = openai.OpenAI(
-            base_url=url, api_key=openai.api_key
-        )
+    # Returns expected role.
+    assert chunks[0].choices[0].delta.role == "assistant"
 
-        completion = client.chat.completions.create(
-            model=test_data["model"],
-            messages=test_data["messages"],
-            stream=test_data['stream'],
-            **test_data["kwargs"]
-        )
+    # Choice has correct index set (multiple choices not supported yet).
+    assert chunks[0].choices[0].index == 0
 
-        if test_data['stream']:
-            for chunk in completion:
-                assert chunk.system_fingerprint is not None
-        else:
-            assert completion.system_fingerprint is not None
+    # Some chunks (eg initial, stop, last) may not have content.
+    content_chunks = [chunk for chunk in chunks
+                      if chunk.choices and chunk.choices[0].delta.content]
 
-    except openai.OpenAIError as e:
-        pytest.fail(f"OpenAI API call failed: {e}")
+    assert len(content_chunks) > 0
 
+    for chunk in content_chunks:
+        logprobs = chunk.choices[0].logprobs
+        for logprob in logprobs.content:
+            assert isinstance(logprob.token, str)
+            assert isinstance(logprob.logprob, float)
+            assert len(logprob.top_logprobs) == top_logprobs
+            top_logprob = logprob.top_logprobs[0]
+            assert isinstance(top_logprob.token, str)
+            assert isinstance(top_logprob.logprob, float)
 
-SIMPLE_COMPLETITION = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.MESSAGE_BASIC,
-    "stream": False,
-    "kwargs": {
-        "max_completion_tokens": 200
-    }
-}
-
-SIMPLE_STREAM = {
-    "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-    "messages": ConstantData.SIMPLE_MESSAGES,
-    "stream": True,
-    "kwargs": {
-        "max_completion_tokens": 200
-    }
-}
-
-
-@pytest.mark.parametrize(
-    "test_data",
-    [
-        SIMPLE_COMPLETITION,
-        SIMPLE_STREAM,
-    ]
-)
-def test_model_name_from_response(setup_openai_client, test_data):
-    """Test completion request and check model info exists"""
-    url = "http://localhost:8000/v1/"
-    model = test_data['model']
-
-    try:
-        client = openai.OpenAI(
-            base_url=url, api_key=openai.api_key
-        )
-
-        completion = client.chat.completions.create(
-            model=model,
-            messages=test_data['messages'],
-            stream=test_data['stream'],
-            **test_data['kwargs']
-        )
-
-        if test_data['stream']:
-            for chunk in completion:
-                assert chunk.model == model
-        else:
-            assert completion.model == model
-    except openai.OpenAIError as e:
-        pytest.fail(f"OpenAI API call failed: {e}")
-
-
-@pytest.mark.parametrize(
-    "test_data",
-    [
-        SIMPLE_COMPLETITION,
-        SIMPLE_STREAM,
-    ]
-)
-def test_created_timestamp(setup_openai_client, test_data):
-    """Test completion and stream requests and then checks that created timestamp is correct"""
-
-    url = "http://localhost:8000/v1/"
-    current_timestamp = datetime.datetime.now().timestamp()
-
-    # Seconds between sent time and time when message was recieved
-    max_delay = 5
-
-    try:
-        client = openai.OpenAI(
-            base_url=url, api_key=openai.api_key
-        )
-
-        completion = client.chat.completions.create(
-            model=test_data["model"],
-            messages=test_data["messages"],
-            stream=test_data['stream'],
-            **test_data["kwargs"]
-        )
-
-        if test_data['stream']:
-            for chunk in completion:
-                assert chunk.created - current_timestamp < max_delay
-        else:
-            assert completion.created - current_timestamp < max_delay
-
-    except openai.OpenAIError as e:
-        pytest.fail(f"OpenAI API call failed: {e}")
-
-
-@pytest.mark.parametrize(
-    "test_data",
-    [
-        SIMPLE_COMPLETITION,
-        SIMPLE_STREAM,
-    ]
-)
-def test_object_type(setup_openai_client, test_data):
-    """Test completion and stream requests is it correct object type"""
-
-    url = "http://localhost:8000/v1/"
-
-    try:
-        client = openai.OpenAI(
-            base_url=url, api_key=openai.api_key
-        )
-
-        completion = client.chat.completions.create(
-            model=test_data["model"],
-            messages=test_data["messages"],
-            stream=test_data['stream'],
-            **test_data["kwargs"]
-        )
-
-        if test_data['stream']:
-            for chunk in completion:
-                assert chunk.object == 'chat.completion.chunk'
-        else:
-            assert completion.object == 'chat.completion'
-            assert type(completion.usage.prompt_tokens) is int
-            assert type(completion.usage.completion_tokens) is int
-            assert type(completion.usage.total_tokens) is int
-            assert type(completion.usage.completion_tokens_details) is None or object
-            assert type(completion.usage.prompt_tokens_details) is None or object
-
-    except openai.OpenAIError as e:
-        pytest.fail(f"OpenAI API call failed: {e}")
-
-
-@pytest.mark.parametrize(
-    "test_data",
-    [
-        SIMPLE_COMPLETITION,
-        SIMPLE_STREAM,
-    ]
-)
-def test_returning_id(setup_openai_client, test_data):
-    """Test completion and stream requests is there is an id"""
-
-    url = "http://localhost:8000/v1/"
-
-    try:
-        client = openai.OpenAI(
-            base_url=url, api_key=openai.api_key
-        )
-
-        completion = client.chat.completions.create(
-            model=test_data["model"],
-            messages=test_data["messages"],
-            stream=test_data['stream'],
-            **test_data["kwargs"]
-        )
-
-        if test_data['stream']:
-            for chunk in completion:
-                assert chunk.id is not None and chunk.id != ''
-        else:
-            assert completion.id is not None and completion.id != ''
-
-    except openai.OpenAIError as e:
-        pytest.fail(f"OpenAI API call failed: {e}")
-
-
-DELTA_SIMPLE_STREAM = {
-    **SIMPLE_STREAM,
-}
-
-DELTA_FUNCTION_CALL_STREAM = {
-    **CHAT_COMPLETION_TOOLS,
-    'stream': True,
-}
-
-DELTA_LOGBROBS_STREAM = {
-    **CHAT_COMPLETION_LOGPROBS_3,
-    'stream': True,
-}
-
-
-@pytest.mark.parametrize(
-    "test_data",
-    [
-        DELTA_SIMPLE_STREAM,        # content
-        DELTA_FUNCTION_CALL_STREAM, # function_call
-        DELTA_LOGBROBS_STREAM,      # logprobs
-    ]
-)
-def test_streming_delta(setup_openai_client, test_data):
-    """Test completion and stream requests is there is an id"""
-
-    url = "http://localhost:8000/v1/"
-
-    try:
-        client = openai.OpenAI(
-            base_url=url, api_key=openai.api_key
-        )
-
-        data = {k: v for k, v in test_data.items() if k != 'kwargs'}
-
-        stream = client.chat.completions.create(
-            **data,
-            **test_data["kwargs"]
-        )
-
-        deltas = [(chunk.choices[0].delta, chunk.choices[0]) for chunk in stream]
-        
-        assert deltas[0][0].role == 'assistant'
-
-        # TODO: Add tests for refusal, tool_calls (except function)
-        if 'tools' in test_data  and 'function' in test_data['tools'][0]:
-            # test delta for function stream
-            assert all(
-                delta.function_call is not None and
-                delta.tool_calls is not None
-                for delta, _ in deltas[1:]
-            )
-        elif 'logprobs' in test_data:
-            # test delta for logprobs stream
-            assert all(
-                delta.content is not None and
-                chunk.logprobs is not None
-                for delta, chunk in deltas[1:-2]
-            )
-        else:
-            # test delta for usual completion stream
-            assert all(delta.content is not None for delta, _ in deltas[1:-2])
-
-    except openai.OpenAIError as e:
-        pytest.fail(f"OpenAI API call failed: {e}")
+    usage = chunks[-1].usage
+    assert usage.prompt_tokens == 36
+    assert usage.completion_tokens == 1
+    assert usage.total_tokens == 37
+    # Only the last chunk has usage information.
+    for chunk in chunks[:-1]:
+        assert chunk.usage is None
