@@ -1427,7 +1427,8 @@ class Llama:
                             ): logprob
                             for logprob, i in sorted_logprobs[:logprobs]
                         }
-                        top_logprob.update({token_str: current_logprobs[int(token)]})
+                        # OpenAI doesn't add sampled token to the top logprobs.
+                        # top_logprob.update({token_str: current_logprobs[int(token)]})
                         logprobs_or_none = {
                             "tokens": [
                                 self.detokenize(
@@ -1564,7 +1565,7 @@ class Llama:
                         self.detokenize([i]).decode("utf-8", errors="ignore"): logprob
                         for logprob, i in sorted_logprobs[:logprobs]
                     }
-                    top_logprob.update({token_str: current_logprobs[int(token)]})
+                    # top_logprob.update({token_str: current_logprobs[int(token)]})
                     logprobs_or_none = {
                         "tokens": [
                             self.detokenize([token]).decode("utf-8", errors="ignore")
@@ -1712,7 +1713,7 @@ class Llama:
                     ): logprob
                     for logprob, i in sorted_logprobs[:logprobs]
                 }
-                top_logprob.update({token_str: logprobs_token[int(token)]})
+                # top_logprob.update({token_str: logprobs_token[int(token)]})
                 top_logprobs.append(top_logprob)
             # Weird idosincracy of the OpenAI API where
             # token_logprobs and top_logprobs are null for
