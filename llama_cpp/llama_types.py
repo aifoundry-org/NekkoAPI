@@ -216,6 +216,15 @@ ChatCompletionRequestMessageContentPart = Union[
 ]
 
 
+class ChatCompletionRequestDeveloperMessage(TypedDict):
+    role: Literal["developer"]
+    content: Optional[str]
+    # TODO; add annotation about the field being ignored
+    # TODO: move into other message types
+    # TODO: add "developer" message type
+    name: NotRequired[Optional[str]]
+
+
 class ChatCompletionRequestSystemMessage(TypedDict):
     role: Literal["system"]
     content: Optional[str]
@@ -228,6 +237,7 @@ class ChatCompletionRequestSystemMessage(TypedDict):
 class ChatCompletionRequestUserMessage(TypedDict):
     role: Literal["user"]
     content: Optional[Union[str, List[ChatCompletionRequestMessageContentPart]]]
+    name: NotRequired[Optional[str]]
 
 
 class ChatCompletionMessageToolCallFunction(TypedDict):
@@ -252,6 +262,7 @@ class ChatCompletionRequestAssistantMessageFunctionCall(TypedDict):
 class ChatCompletionRequestAssistantMessage(TypedDict):
     role: Literal["assistant"]
     content: NotRequired[str]
+    name: NotRequired[Optional[str]]
     tool_calls: NotRequired[ChatCompletionMessageToolCalls]
     function_call: NotRequired[
         ChatCompletionRequestAssistantMessageFunctionCall
@@ -271,10 +282,10 @@ class ChatCompletionRequestFunctionMessage(TypedDict):
 
 
 ChatCompletionRequestMessage = Union[
+    ChatCompletionRequestDeveloperMessage,
     ChatCompletionRequestSystemMessage,
     ChatCompletionRequestUserMessage,
     ChatCompletionRequestAssistantMessage,
-    ChatCompletionRequestUserMessage,
     ChatCompletionRequestToolMessage,
     ChatCompletionRequestFunctionMessage,
 ]
