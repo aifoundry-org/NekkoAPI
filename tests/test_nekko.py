@@ -368,3 +368,28 @@ def test_chat_streaming_response(openai_client):
     # Only the last chunk has usage information.
     for chunk in chunks[:-1]:
         assert chunk.usage is None
+
+
+def test_chat_developer_role(openai_client):
+    """Test completion request and check the received message."""
+    # Only check that developer and name arguments are accepted.
+    # `role` is transmitted to the model as is
+    # `name` is ignored
+    completion = openai_client.chat.completions.create(
+        model=MODEL,
+        max_completion_tokens=10,
+        messages=[
+            {
+                "role": "developer",
+                "content": "The year is 1995.",
+                "name": "Nekko",
+            },
+            {
+                "role": "user",
+                "content": "What year it is?",
+                "name": "Pier",
+            }
+        ],
+    )
+
+    assert completion.choices[0].message.content
