@@ -235,16 +235,44 @@ def test_chat_stream_tools(openai_client):
     assert usage.total_tokens == usage.prompt_tokens + usage.completion_tokens
 
 
-def chat_completion_finish_reason(openai_client):
+@pytest.mark.parametrize(
+    "test_data, messages, expected_finish_reason",
+    [
+        ({"max_completion_tokens": 1}, [{"role": "user", "content": "What is the capital of France?"}], "length"),
+        ({}, [{"role": "user", "content": "What is the capital of France?"}], "stop"),
+        ({"tools": [
+            {
+                "type": "function",
+                "function": {
+                    "description": "Set door status",
+                    "name": "set_door",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "open": {"type": "boolean"},
+                        },
+                        "required": [
+                            "open",
+                        ],
+                        "additionalProperties": False
+                    }
+                }
+            }
+        ], "tool_choice": {
+            "type": "function",
+            "function": {"name": "set_door"}
+        }}, [{"role": "user", "content": "Close the door"}], "tool_calls")
+    ]
+)
+def test_chat_completion_finish_reason(openai_client, test_data, messages, expected_finish_reason):
     completion = openai_client.chat.completions.create(
         model=MODEL,
-        messages=[{"role": "user", "content": "What is the capital of France?"}],
-        max_completion_tokens=1,
+        messages=messages,
+        **test_data
     )
 
     finish_reason = completion.choices[0].finish_reason
-    assert finish_reason == "length"
-    assert isinstance(completion.choices[0].message.content, str)
+    assert finish_reason == expected_finish_reason
     assert completion.choices[0].message.role == "assistant"
     assert completion.choices[0].index == 0
 
