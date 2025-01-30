@@ -409,7 +409,7 @@ class Llama:
         self._lora_adapter: Optional[llama_cpp.llama_lora_adapter_p] = None
 
         if self.lora_path:
-            self._lora_adapter = llama_cpp.llama_lora_adapter_init(
+            self._lora_adapter = llama_cpp.llama_adapter_lora_init(
                 self._model.model,
                 self.lora_path.encode("utf-8"),
             )
@@ -421,12 +421,12 @@ class Llama:
             def free_lora_adapter():
                 if self._lora_adapter is None:
                     return
-                llama_cpp.llama_lora_adapter_free(self._lora_adapter)
+                llama_cpp.llama_adapter_lora_free(self._lora_adapter)
                 self._lora_adapter = None
 
             self._stack.callback(free_lora_adapter)
 
-            if llama_cpp.llama_lora_adapter_set(
+            if llama_cpp.llama_set_adapter_lora(
                 self._ctx.ctx, self._lora_adapter, self.lora_scale
             ):
                 raise RuntimeError(
@@ -677,7 +677,6 @@ class Llama:
         mirostat_mode: int = 0,
         mirostat_eta: float = 0.1,
         mirostat_tau: float = 5.0,
-        penalize_nl: bool = True,
         logits_processor: Optional[LogitsProcessorList] = None,
         grammar: Optional[LlamaGrammar] = None,
     ):
@@ -706,15 +705,10 @@ class Llama:
             sampler.add_custom(apply_func)
 
         sampler.add_penalties(
-            n_vocab=self._n_vocab,
-            special_eos_id=self._token_eos,
-            linefeed_id=self._token_nl,
             penalty_last_n=self.last_n_tokens_size,
             penalty_repeat=repeat_penalty,
             penalty_freq=frequency_penalty,
             penalty_present=presence_penalty,
-            penalize_nl=penalize_nl,
-            ignore_eos=False,
         )
 
         if grammar is not None:
@@ -766,7 +760,6 @@ class Llama:
         mirostat_mode: int = 0,
         mirostat_eta: float = 0.1,
         mirostat_tau: float = 5.0,
-        penalize_nl: bool = True,
         logits_processor: Optional[LogitsProcessorList] = None,
         grammar: Optional[LlamaGrammar] = None,
         idx: Optional[int] = None,
@@ -801,7 +794,6 @@ class Llama:
                 mirostat_mode=mirostat_mode,
                 mirostat_tau=mirostat_tau,
                 mirostat_eta=mirostat_eta,
-                penalize_nl=penalize_nl,
                 logits_processor=logits_processor,
                 grammar=grammar,
             )
@@ -830,7 +822,6 @@ class Llama:
         mirostat_mode: int = 0,
         mirostat_tau: float = 5.0,
         mirostat_eta: float = 0.1,
-        penalize_nl: bool = True,
         logits_processor: Optional[LogitsProcessorList] = None,
         stopping_criteria: Optional[StoppingCriteriaList] = None,
         grammar: Optional[LlamaGrammar] = None,
@@ -869,7 +860,6 @@ class Llama:
             mirostat_mode=mirostat_mode,
             mirostat_tau=mirostat_tau,
             mirostat_eta=mirostat_eta,
-            penalize_nl=penalize_nl,
             logits_processor=logits_processor,
             grammar=grammar,
         )
@@ -923,7 +913,6 @@ class Llama:
                     mirostat_eta=mirostat_eta,
                     logits_processor=logits_processor,
                     grammar=grammar,
-                    penalize_nl=penalize_nl,
                     idx=sample_idx,
                 )
 
@@ -1152,6 +1141,7 @@ class Llama:
         bos_token_id: int = self.token_bos()
         cls_token_id: int = self._model.token_cls()
         sep_token_id: int = self._model.token_sep()
+
         prefix_token_id: int = self._model.token_prefix()
         middle_token_id: int = self._model.token_middle()
         suffix_token_id: int = self._model.token_suffix()
@@ -1332,7 +1322,7 @@ class Llama:
             logits_processor=logits_processor,
             grammar=grammar,
         ):
-            if llama_cpp.llama_token_is_eog(self._model.model, token):
+            if llama_cpp.llama_vocab_is_eog(self._model.vocab, token):
                 text = self.detokenize(completion_tokens, prev_tokens=prompt_tokens)
                 finish_reason = "stop"
                 break

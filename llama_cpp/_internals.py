@@ -48,7 +48,7 @@ class LlamaModel:
             raise ValueError(f"Model path does not exist: {path_model}")
 
         with suppress_stdout_stderr(disable=verbose):
-            model = llama_cpp.llama_load_model_from_file(
+            model = llama_cpp.llama_model_load_from_file(
                 self.path_model.encode("utf-8"), self.params
             )
 
@@ -56,6 +56,7 @@ class LlamaModel:
             raise ValueError(f"Failed to load model from file: {path_model}")
 
         self.model = model
+        self.vocab = llama_cpp.llama_model_get_vocab(model)
 
         def free_model():
             if self.model is None:
@@ -72,10 +73,10 @@ class LlamaModel:
         self.close()
 
     def vocab_type(self) -> int:
-        return llama_cpp.llama_vocab_type(self.model)
+        return llama_cpp.llama_vocab_type(self.vocab)
 
     def n_vocab(self) -> int:
-        return llama_cpp.llama_n_vocab(self.model)
+        return llama_cpp.llama_vocab_n_tokens(self.vocab)
 
     def n_ctx_train(self) -> int:
         return llama_cpp.llama_n_ctx_train(self.model)
@@ -84,7 +85,7 @@ class LlamaModel:
         return llama_cpp.llama_n_embd(self.model)
 
     def rope_freq_scale_train(self) -> float:
-        return llama_cpp.llama_rope_freq_scale_train(self.model)
+        return llama_cpp.llama_model_rope_freq_scale_train(self.model)
 
     def desc(self) -> str:
         buf = ctypes.create_string_buffer(1024)
@@ -97,54 +98,55 @@ class LlamaModel:
     def n_params(self) -> int:
         return llama_cpp.llama_model_n_params(self.model)
 
-    def get_tensor(self, name: str) -> ctypes.c_void_p:
-        return llama_cpp.llama_get_model_tensor(self.model, name.encode("utf-8"))
-
     # Vocab
 
     def token_get_text(self, token: int) -> str:
-        return llama_cpp.llama_token_get_text(self.model, token).decode("utf-8")
+        return llama_cpp.llama_vocab_get_text(self.vocab, token).decode("utf-8")
 
     def token_get_score(self, token: int) -> float:
-        return llama_cpp.llama_token_get_score(self.model, token)
+        return llama_cpp.llama_vocab_get_score(self.vocab, token)
 
     def token_get_attr(self, token: int) -> int:
-        return llama_cpp.llama_token_get_attr(self.model, token)
+        return llama_cpp.llama_vocab_get_attr(self.vocab, token)
 
     # Special tokens
 
     def token_bos(self) -> int:
-        return llama_cpp.llama_token_bos(self.model)
+        return llama_cpp.llama_vocab_bos(self.vocab)
 
     def token_eos(self) -> int:
-        return llama_cpp.llama_token_eos(self.model)
+        return llama_cpp.llama_vocab_eos(self.vocab)
 
     def token_cls(self) -> int:
-        return llama_cpp.llama_token_cls(self.model)
+        # CLS is equivalent to BOS
+        return llama_cpp.llama_vocab_bos(self.vocab)
 
     def token_sep(self) -> int:
-        return llama_cpp.llama_token_sep(self.model)
+        return llama_cpp.llama_vocab_sep(self.vocab)
 
     def token_nl(self) -> int:
-        return llama_cpp.llama_token_nl(self.model)
+        return llama_cpp.llama_vocab_nl(self.vocab)
+    
+    def token_pad(self) -> int:
+        return llama_cpp.llama_vocab_pad(self.vocab)
 
     def token_prefix(self) -> int:
-        return llama_cpp.llama_token_prefix(self.model)
+        return llama_cpp.llama_vocab_fim_pre(self.vocab)
 
     def token_middle(self) -> int:
-        return llama_cpp.llama_token_middle(self.model)
+        return llama_cpp.llama_vocab_fim_mid(self.vocab)
 
     def token_suffix(self) -> int:
-        return llama_cpp.llama_token_suffix(self.model)
+        return llama_cpp.llama_vocab_fim_suf(self.vocab)
 
     def token_eot(self) -> int:
-        return llama_cpp.llama_token_eot(self.model)
+        return llama_cpp.llama_vocab_eot(self.vocab)
 
     def add_bos_token(self) -> bool:
-        return llama_cpp.llama_add_bos_token(self.model)
+        return llama_cpp.llama_vocab_get_add_bos(self.vocab)
 
     def add_eos_token(self) -> bool:
-        return llama_cpp.llama_add_eos_token(self.model)
+        return llama_cpp.llama_vocab_get_add_eos(self.vocab)
 
     # Tokenization
 
@@ -152,13 +154,13 @@ class LlamaModel:
         n_ctx = self.n_ctx_train()
         tokens = (llama_cpp.llama_token * n_ctx)()
         n_tokens = llama_cpp.llama_tokenize(
-            self.model, text, len(text), tokens, n_ctx, add_bos, special
+            self.vocab, text, len(text), tokens, n_ctx, add_bos, special
         )
         if n_tokens < 0:
             n_tokens = abs(n_tokens)
             tokens = (llama_cpp.llama_token * n_tokens)()
             n_tokens = llama_cpp.llama_tokenize(
-                self.model, text, len(text), tokens, n_tokens, add_bos, special
+                self.vocab, text, len(text), tokens, n_tokens, add_bos, special
             )
             if n_tokens < 0:
                 raise RuntimeError(
@@ -168,7 +170,7 @@ class LlamaModel:
 
     def token_to_piece(self, token: int, special: bool = False) -> bytes:
         buf = ctypes.create_string_buffer(32)
-        llama_cpp.llama_token_to_piece(self.model, token, buf, 32, 0, special)
+        llama_cpp.llama_token_to_piece(self.vocab, token, buf, 32, 0, special)
         return bytes(buf)
 
     def detokenize(self, tokens: List[int], special: bool = False) -> bytes:
@@ -177,7 +179,7 @@ class LlamaModel:
         buffer = (ctypes.c_char * size)()
         for token in tokens:
             n = llama_cpp.llama_token_to_piece(
-                self.model, llama_cpp.llama_token(token), buffer, size, 0, special
+                self.vocab, llama_cpp.llama_token(token), buffer, size, 0, special
             )
             assert n <= size
             output += bytes(buffer[:n])
@@ -788,32 +790,22 @@ class LlamaSampler:
 
     def add_grammar(self, model: LlamaModel, grammar: LlamaGrammar):
         sampler = llama_cpp.llama_sampler_init_grammar(
-            model.model, grammar._grammar.encode("utf-8"), grammar._root.encode("utf-8")
+            model.vocab, grammar._grammar.encode("utf-8"), grammar._root.encode("utf-8")
         )
         self._add_sampler(sampler)
 
     def add_penalties(
         self,
-        n_vocab: int,
-        special_eos_id: int,
-        linefeed_id: int,
         penalty_last_n: int,
         penalty_repeat: float,
         penalty_freq: float,
         penalty_present: float,
-        penalize_nl: bool,
-        ignore_eos: bool,
     ):
         sampler = llama_cpp.llama_sampler_init_penalties(
-            n_vocab,
-            special_eos_id,
-            linefeed_id,
             penalty_last_n,
             penalty_repeat,
             penalty_freq,
             penalty_present,
-            penalize_nl,
-            ignore_eos,
         )
         self._add_sampler(sampler)
 
