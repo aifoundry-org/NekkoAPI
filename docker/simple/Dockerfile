@@ -16,6 +16,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     build-essential \
     pkgconf \
     curl \
+    git \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
