@@ -1,0 +1,85 @@
+services:
+  otel_collector:
+    platform: linux/amd64
+    image: otel/opentelemetry-collector:latest
+    networks:
+      - performance-benchmark-network
+    ports:
+      - "4317:4317"
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+
+  nekko_api:
+    image: nekko-api:latest
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/simple/Dockerfile
+    cap_add:
+      - SYS_RESOURCE
+    volumes:
+      - ./models:/app/models
+      - ./config/nekko_settings.json:/app/settings.json
+    networks:
+      - performance-benchmark-network
+    environment:
+      - CONFIG_FILE=settings.json
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel_collector:4317
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/v1/models"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  vllm_api:
+    image: vllm_cpu_image
+    build:
+      context: ./build/vllm
+      dockerfile: Dockerfile.cpu
+    platform: linux/amd64
+    volumes:
+      - ./models:/app/models
+    networks:
+      - performance-benchmark-network
+    environment:
+      - VLLM_TARGET_DEVICE=cpu
+      - OMP_NUM_THREADS=4
+      - VLLM_CPU_KVCACHE_SPACE=8
+      - VLLM_OPENVINO_CPU_KV_CACHE_PRECISION=u8
+      - VLLM_OPENVINO_ENABLE_QUANTIZED_WEIGHTS=1
+    ports:
+      - "8001:8001"
+    command: [
+      "--port", "8001",
+      "--model", "Qwen/Qwen2.5-3B-Instruct",
+      "--dtype", "float32"
+    ]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/v1/models"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  llm_perf:
+    build:
+      dockerfile: Dockerfile.llmperf
+    platform: linux/amd64
+    depends_on:
+      nekko_api:
+        condition: service_healthy
+      vllm_api:
+        condition: service_healthy
+    networks:
+      - performance-benchmark-network
+    volumes:
+      - ./config:/app/config:delegated
+      - ./results:/app/results:delegated
+
+networks:
+  performance-benchmark-network:
+    driver: bridge

@@ -1,0 +1,79 @@
+global:
+  timeout: 600
+  iterations: 10
+  results_dir: "results"
+
+api_endpoints:
+  nekko:
+    llm_api: "openai"
+    api_key: "secret_abcdefg"
+    api_base: "http://nekko_api:8000/v1"
+    additional_sampling_params: >
+      {
+        "stream": true,
+        "model": "qwen2.5",
+        "messages": [
+          {
+            "role": "system", 
+            "content": "You are a helpful assistant."
+          }
+        ]
+      }
+
+  vllm:
+    llm_api: "openai"
+    api_key: "secret_vllm"
+    api_base: "http://vllm_api:8001/v1"
+    additional_sampling_params: >
+      {
+        "stream": true,
+        "model": "Qwen/Qwen2.5-3B-Instruct",
+        "chat_template": "{% for message in messages %}{{ message.content }}{{ eos_token }}{% endfor %}",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant."
+          }
+        ]
+      }
+
+scenarios:
+  - name: short_prompt_output
+    prompt: "What is the capital of France?"
+    output_length: 20
+    mean_input_tokens: 550
+    stddev_input_tokens: 150
+    mean_output_tokens: 150
+    stddev_output_tokens: 10
+    num_concurrent_requests: 1
+    max_num_completed_requests: 4
+
+  - name: medium_prompt_output
+    prompt: "Summarize the lifecycle of a butterfly in detail."
+    output_length: 50
+    mean_input_tokens: 600
+    stddev_input_tokens: 100
+    mean_output_tokens: 150
+    stddev_output_tokens: 50
+    num_concurrent_requests: 1
+    max_num_completed_requests: 4
+
+  - name: long_prompt_output
+    prompt: "Summarize the book 'War and Peace' by Leo Tolstoy in 300 words."
+    output_length: 100
+    mean_input_tokens: 800
+    stddev_input_tokens: 200
+    mean_output_tokens: 150
+    stddev_output_tokens: 100
+    num_concurrent_requests: 1
+    max_num_completed_requests: 4
+
+  - name: high_concurrency
+    prompt: "What are the main causes of World War I?"
+    output_length: 20
+    mean_input_tokens: 550
+    stddev_input_tokens: 150
+    mean_output_tokens: 150
+    stddev_output_tokens: 10
+    num_concurrent_requests: 4
+    max_num_completed_requests: 1
