@@ -3,11 +3,13 @@ global:
   iterations: 10
   results_dir: "results"
 
+# Change model name in specs if you change it in docker-compose
 api_endpoints:
   nekko:
     llm_api: "openai"
     api_key: "secret_abcdefg"
     api_base: "http://nekko_api:8000/v1"
+    container_name: "nekko_api"
     additional_sampling_params: >
       {
         "stream": true,
@@ -24,11 +26,29 @@ api_endpoints:
     llm_api: "openai"
     api_key: "secret_vllm"
     api_base: "http://vllm_api:8001/v1"
+    container_name: "vllm_api"
     additional_sampling_params: >
       {
         "stream": true,
-        "model": "Qwen/Qwen2.5-3B-Instruct",
+        "model": "facebook/opt-125m",
         "chat_template": "{% for message in messages %}{{ message.content }}{{ eos_token }}{% endfor %}",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant."
+          }
+        ]
+      }
+
+  ollama:
+    llm_api: "openai"
+    api_key: "secret_ollama"
+    api_base: "http://ollama_api:11434/v1"
+    container_name: "ollama_api"
+    additional_sampling_params: >
+      {
+        "stream": true,
+        "model": "qwen2.5-3b-instruct-q5_k_m",
         "messages": [
           {
             "role": "system",

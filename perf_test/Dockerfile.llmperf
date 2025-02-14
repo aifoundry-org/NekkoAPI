@@ -1,25 +1,20 @@
 FROM python:3.10-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install necessary dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends git
 
-# Copy llmperf and ensure dependencies are installed
 COPY build/llmperf /app/llmperf
 COPY requirements.txt /app/requirements.txt
 
 RUN apt-get update
 
 RUN pip install --no-cache-dir -e /app/llmperf && \
-    pip install -r /app/requirements.txt
+    pip install -r /app/requirements.txt && \
+    pip install docker
 
-# Copy the Python script for running tests
 COPY main.py /app/main.py
 
-# Ensure the script is executable
 RUN chmod +x /app/main.py
 
-# Default command
-CMD ["python", "/app/main.py"]
+ENTRYPOINT ["python", "/app/main.py"]

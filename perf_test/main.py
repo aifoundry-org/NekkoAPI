@@ -5,9 +5,10 @@ import shutil
 import subprocess
 import time
 import yaml
-import psutil
-
-from typing import TypedDict
+import docker
+from typing import TypedDict, Dict, Any
+import argparse
+import glob
 
 
 class ScenarioConfig(TypedDict):
@@ -30,7 +31,6 @@ class APIEndpointConfig(TypedDict):
 
 
 class GlobalConfig(TypedDict):
-    model: str
     timeout: int
     iterations: int
     results_dir: str
@@ -61,18 +61,62 @@ def load_specs(params_file: str) -> TestParams:
         return yaml.safe_load(file)
 
 
-def setup_results_directory(results_dir: str) -> None:
-    """Ensure results directory exists and is empty."""
-    if os.path.exists(results_dir):
-        for item in os.listdir(results_dir):
-            item_path = os.path.join(results_dir, item)
-            if os.path.isfile(item_path):
-                os.unlink(item_path)
-            elif os.path.isdir(item_path):
-                shutil.rmtree(item_path)
-    else:
-        logging.info(f"Creating results directory: {results_dir}")
-        os.makedirs(results_dir)
+def setup_api_results_directory(results_dir: str, api_name: str) -> None:
+    """Ensure results directory exists and clean specific API results."""
+    api_results_pattern = os.path.join(results_dir, f"{api_name}_*")
+    
+    # Create results directory if it doesn't exist
+    os.makedirs(results_dir, exist_ok=True)
+    
+    # Clean existing results for this API
+    for item in glob.glob(api_results_pattern):
+        if os.path.isfile(item):
+            os.unlink(item)
+        elif os.path.isdir(item):
+            shutil.rmtree(item)
+    
+    logging.info(f"Cleaned results directory for API: {api_name}")
+
+
+def get_container_stats(client: docker.DockerClient, container_name: str) -> Dict[Any, Any]:
+    """Get stats for a specific container"""
+    try:
+        container = client.containers.get(container_name)
+        stats = container.stats(stream=False)
+        
+        # Calculate CPU percentage
+        cpu_percent = 0.0
+        try:
+            cpu_stats = stats.get('cpu_stats', {})
+            precpu_stats = stats.get('precpu_stats', {})
+            
+            cpu_usage = cpu_stats.get('cpu_usage', {})
+            precpu_usage = precpu_stats.get('cpu_usage', {})
+            
+            cpu_delta = cpu_usage.get('total_usage', 0) - precpu_usage.get('total_usage', 0)
+            system_delta = cpu_stats.get('system_cpu_usage', 0) - precpu_stats.get('system_cpu_usage', 0)
+            
+            if system_delta > 0:
+                num_cpus = len(cpu_usage.get('percpu_usage', [1]))  # Default to 1 if not available
+                cpu_percent = (cpu_delta / system_delta) * num_cpus * 100.0
+        except Exception as e:
+            logging.warning(f"Error calculating CPU stats: {e}")
+
+        # Calculate memory usage in MB
+        try:
+            memory_stats = stats.get('memory_stats', {})
+            memory_usage_mb = memory_stats.get('usage', 0) / (1024 * 1024)
+        except Exception as e:
+            logging.warning(f"Error calculating memory stats: {e}")
+            memory_usage_mb = 0
+
+        return {
+            'cpu_percent': cpu_percent,
+            'memory_mb': memory_usage_mb
+        }
+    except Exception as e:
+        logging.error(f"Error getting stats for container {container_name}: {e}")
+        return None
 
 
 def run_scenario(
@@ -81,7 +125,7 @@ def run_scenario(
     global_config: GlobalConfig,
     results_dir: str,
 ) -> bool:
-    """Run a single test scenario with system resource monitoring."""
+    """Run a single test scenario with Docker container resource monitoring."""
     scenario_name = scenario["name"]
     prompt = scenario["prompt"]
     output_length = scenario["output_length"]
@@ -89,6 +133,9 @@ def run_scenario(
     max_num_completed_requests = scenario["max_num_completed_requests"]
 
     logging.info(f"Running scenario: {scenario_name}")
+
+    # Initialize Docker client
+    docker_client = docker.from_env()
 
     # Merge JSON parameters
     merged_params = json.loads(api_config["additional_sampling_params"])
@@ -99,26 +146,18 @@ def run_scenario(
     os.makedirs(results_dir_run, exist_ok=True)
 
     max_attempts = 3
+    target_container = f"perf_test-{api_config['container_name']}-1"
+
     for attempt in range(1, max_attempts + 1):
-        # Get baseline measurements before starting the test
-        baseline_cpu = psutil.cpu_percent(interval=0.5)
-        baseline_memory = psutil.virtual_memory().used / (1024 * 1024)
-
-        # Initialize metrics collection
-        cpu_measurements: list[float] = []
-        memory_measurements: list[float] = []
-
-        # For delta calculations
-        cpu_delta_measurements: list[float] = []
-        memory_delta_measurements: list[float] = []
-
-        prev_time = time.time()
+        # Initialize max metrics
+        max_cpu_percent = 0.0
+        max_memory_mb = 0.0
 
         cmd = [
             "python",
             "llmperf/token_benchmark_ray.py",
             "--model",
-            "dummy_model",
+            scenario_name,
             "--num-concurrent-requests",
             str(num_concurrent_requests),
             "--results-dir",
@@ -138,54 +177,26 @@ def run_scenario(
         # Collect metrics while the process is running
         while process.poll() is None:
             try:
-                timeout = 0.5
-                current_time = time.time()
-                time_delta = current_time - prev_time
-
-                # System-wide CPU usage
-                cpu_percent = psutil.cpu_percent(interval=timeout)
-                cpu_delta = (cpu_percent - baseline_cpu) / time_delta
-
-                # System-wide memory usage
-                memory = psutil.virtual_memory()
-                memory_used_mb = (memory.total - memory.available) / (1024 * 1024)
-                memory_delta = (memory_used_mb - baseline_memory) / time_delta
-
-                # Store measurements
-                cpu_measurements.append(cpu_percent)
-                memory_measurements.append(memory_used_mb)
-                cpu_delta_measurements.append(cpu_delta)
-                memory_delta_measurements.append(memory_delta)
-
-                # Update previous values
-                baseline_cpu = cpu_percent
-                baseline_memory = memory_used_mb
-                prev_time = current_time
-
-                time.sleep(timeout)  # Add small delay to prevent excessive sampling
+                stats = get_container_stats(docker_client, target_container)
+                if stats:
+                    max_cpu_percent = max(max_cpu_percent, stats['cpu_percent'])
+                    max_memory_mb = max(max_memory_mb, stats['memory_mb'])
+                
+                time.sleep(0.5)  # Add small delay to prevent excessive sampling
 
             except Exception as e:
-                logging.error(f"Error collecting system metrics: {e}")
+                logging.error(f"Error collecting container metrics: {e}")
                 break
 
         if process.returncode == 0:
-            if cpu_measurements:  # If we collected any measurements
-                metrics = {
-                    "system_cpu_usage": {
-                        "baseline": baseline_cpu,
-                        "max_during_test": max(cpu_measurements),
-                        "max_increase": max(cpu_measurements) - baseline_cpu,
-                    },
-                    "system_memory_usage_mb": {
-                        "baseline": baseline_memory,
-                        "max_during_test": max(memory_measurements),
-                        "max_increase": max(memory_measurements) - baseline_memory,
-                    },
-                }
+            metrics = {
+                "max_cpu_percent": max_cpu_percent,
+                "max_memory_mb": max_memory_mb
+            }
 
-                metrics_file = os.path.join(results_dir_run, "system_metrics.json")
-                with open(metrics_file, "w") as f:
-                    json.dump(metrics, f, indent=2)
+            metrics_file = os.path.join(results_dir_run, "container_metrics.json")
+            with open(metrics_file, "w") as f:
+                json.dump(metrics, f, indent=2)
 
             logging.info(f"Scenario '{scenario_name}' completed successfully.")
             return True
@@ -220,27 +231,28 @@ def run_api_tests(
             scenario, {**api_config, "name": api_name}, global_config, results_dir
         ):
             return False
-        time.sleep(5)
     logging.info(f"Testing for API '{api_name}' completed.")
     return True
 
 
-def main() -> None:
+def run_perf_test(api_names: list[str] = []) -> None:
     """Main function to orchestrate the performance tests."""
-    # Setup logging
     setup_logging()
 
-    # Load test parameters
     params = load_specs("config/specs.yaml")
 
-    # Extract global parameters
     global_config = params["global"]
 
-    # Setup results directory
-    setup_results_directory(global_config["results_dir"])
+    os.makedirs(global_config["results_dir"], exist_ok=True)
 
-    # Process API endpoints
     for api_name, api_config in params["api_endpoints"].items():
+        if api_names and api_name not in api_names:
+            logging.info(f"Skipping API '{api_name}' as it was not specified in command line arguments")
+            continue
+
+        # Clean results directory for this API before running tests
+        setup_api_results_directory(global_config["results_dir"], api_name)
+
         if not run_api_tests(
             api_name,
             api_config,
@@ -255,4 +267,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Run performance tests for specified APIs')
+    parser.add_argument('--api-names', nargs='*', help='List of API names to test. If not specified, all APIs will be tested.')
+    args = parser.parse_args()
+    run_perf_test(args.api_names)
