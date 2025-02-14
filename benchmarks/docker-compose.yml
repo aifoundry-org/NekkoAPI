@@ -1,3 +1,4 @@
+# Common configuration for LLM performance containers
 x-llm-perf-common: &llm-perf-common
   build:
     dockerfile: Dockerfile.llmperf
@@ -8,6 +9,7 @@ x-llm-perf-common: &llm-perf-common
   volumes:
     - ./config:/app/config:ro
     - ./results:/app/results:consistent
+    - ./scripts/combine_results.py:/combine_results.py:rw
     - /var/run/docker.sock:/var/run/docker.sock
   group_add:
     - ${DOCKER_GID:-999}
@@ -24,7 +26,7 @@ services:
       - "4317:4317"
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
-      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+      - ./config/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
 
   nekko_api:
     profiles:
@@ -92,7 +94,7 @@ services:
       - "8001:8001"
     command: [
       "--port", "8001",
-      # Delete the comment if you want to test a large model similar to the one being tested on Neko. Change specs as well
+      # Commented out: For testing large models, adjust as needed:
       # "--model", "Qwen/Qwen2.5-3B-Instruct",
       "--dtype", "float32"
     ]
@@ -110,7 +112,7 @@ services:
     depends_on:
       nekko_api:
         condition: service_healthy
-    command: ["--api-names", "nekko"]
+    command: ["sh", "-c", "python /app/collect_benchmarks.py --api-names nekko && python /combine_results.py"]
 
   llm_perf_vllm:
     <<: *llm-perf-common
@@ -119,7 +121,7 @@ services:
     depends_on:
       vllm_api:
         condition: service_healthy
-    command: ["--api-names", "vllm"]
+    command: ["sh", "-c", "python /app/collect_benchmarks.py --api-names vllm && python /combine_results.py"]
 
   llm_perf_ollama:
     <<: *llm-perf-common
@@ -128,8 +130,8 @@ services:
     depends_on:
       ollama_api:
         condition: service_healthy
-    command: ["--api-names", "ollama"]
-  
+    command: ["sh", "-c", "python /app/collect_benchmarks.py --api-names ollama && python /combine_results.py"]
+
 networks:
   performance-benchmark-network:
     driver: bridge
