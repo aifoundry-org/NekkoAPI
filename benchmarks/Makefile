@@ -5,12 +5,12 @@ perf_test_all: perf_test_nekko perf_test_ollama perf_test_vllm
 clone_vllm:
 	@mkdir -p build
 	@if [ ! -d "build/vllm" ]; then \
-		git clone https://github.com/vllm-project/vllm.git build/vllm; \
+		git clone --depth 1 https://github.com/vllm-project/vllm.git build/vllm; \
 	fi
 
 clone_llmperf:
 	@if [ ! -d "build/llmperf" ]; then \
-		git clone https://github.com/ray-project/llmperf.git build/llmperf; \
+		git clone --depth 1 https://github.com/ray-project/llmperf.git build/llmperf; \
 	fi
 
 models:

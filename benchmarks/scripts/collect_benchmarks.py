@@ -78,45 +78,52 @@ def setup_api_results_directory(results_dir: str, api_name: str) -> None:
     logging.info(f"Cleaned results directory for API: {api_name}")
 
 
-def get_container_stats(client: docker.DockerClient, container_name: str) -> Dict[Any, Any]:
-    """Get stats for a specific container"""
+def get_container_stats(client: docker.DockerClient, container_name: str) -> dict:
+    """Get stats for a specific container by matching container name substring."""
+    container = None
     try:
+        # Try to get container by exact name
         container = client.containers.get(container_name)
-        stats = container.stats(stream=False)
-        
-        # Calculate CPU percentage
-        cpu_percent = 0.0
-        try:
-            cpu_stats = stats.get('cpu_stats', {})
-            precpu_stats = stats.get('precpu_stats', {})
-            
-            cpu_usage = cpu_stats.get('cpu_usage', {})
-            precpu_usage = precpu_stats.get('cpu_usage', {})
-            
-            cpu_delta = cpu_usage.get('total_usage', 0) - precpu_usage.get('total_usage', 0)
-            system_delta = cpu_stats.get('system_cpu_usage', 0) - precpu_stats.get('system_cpu_usage', 0)
-            
-            if system_delta > 0:
-                num_cpus = len(cpu_usage.get('percpu_usage', [1]))  # Default to 1 if not available
-                cpu_percent = (cpu_delta / system_delta) * num_cpus * 100.0
-        except Exception as e:
-            logging.warning(f"Error calculating CPU stats: {e}")
+    except docker.errors.NotFound:
+        # Fallback: search all containers for a matching name fragment
+        for cont in client.containers.list():
+            if container_name in cont.name:
+                container = cont
+                break
 
-        # Calculate memory usage in MB
-        try:
-            memory_stats = stats.get('memory_stats', {})
-            memory_usage_mb = memory_stats.get('usage', 0) / (1024 * 1024)
-        except Exception as e:
-            logging.warning(f"Error calculating memory stats: {e}")
-            memory_usage_mb = 0
-
-        return {
-            'cpu_percent': cpu_percent,
-            'memory_mb': memory_usage_mb
-        }
-    except Exception as e:
-        logging.error(f"Error getting stats for container {container_name}: {e}")
+    if not container:
+        logging.error(f"Container with name or fragment '{container_name}' not found.")
         return None
+
+    stats = container.stats(stream=False)
+
+    # Calculate CPU percentage
+    cpu_percent = 0.0
+    try:
+        cpu_stats = stats.get('cpu_stats', {})
+        precpu_stats = stats.get('precpu_stats', {})
+        cpu_usage = cpu_stats.get('cpu_usage', {})
+        precpu_usage = precpu_stats.get('cpu_usage', {})
+        cpu_delta = cpu_usage.get('total_usage', 0) - precpu_usage.get('total_usage', 0)
+        system_delta = cpu_stats.get('system_cpu_usage', 0) - precpu_stats.get('system_cpu_usage', 0)
+        if system_delta > 0:
+            num_cpus = len(cpu_usage.get('percpu_usage', [1]))
+            cpu_percent = (cpu_delta / system_delta) * num_cpus * 100.0
+    except Exception as e:
+        logging.warning(f"Error calculating CPU stats: {e}")
+
+    # Calculate memory usage in MB
+    memory_usage_mb = 0.0
+    try:
+        memory_stats = stats.get('memory_stats', {})
+        memory_usage_mb = memory_stats.get('usage', 0) / (1024 * 1024)
+    except Exception as e:
+        logging.warning(f"Error calculating memory stats: {e}")
+
+    return {
+        'cpu_percent': cpu_percent,
+        'memory_mb': memory_usage_mb
+    }
 
 
 def run_scenario(
@@ -146,7 +153,7 @@ def run_scenario(
     os.makedirs(results_dir_run, exist_ok=True)
 
     max_attempts = 3
-    target_container = f"perf_test-{api_config['container_name']}-1"
+    target_container = f"{api_config['container_name']}"
 
     for attempt in range(1, max_attempts + 1):
         # Initialize max metrics

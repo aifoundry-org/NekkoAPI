@@ -29,6 +29,7 @@ services:
       - ./config/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
 
   nekko_api:
+    container_name: nekko_api
     profiles:
       - nekko_mode
     image: nekko-api:latest
@@ -56,6 +57,7 @@ services:
       retries: 5
 
   ollama_api:
+    container_name: ollama_api
     profiles:
       - ollama_mode
     image: ollama/ollama
@@ -75,6 +77,7 @@ services:
       start_period: 10s
 
   vllm_api:
+    container_name: vllm_api
     profiles:
       - vllm_mode
     image: vllm_cpu_image
