@@ -79,7 +79,31 @@ scenarios:
     max_num_completed_requests: 4
 
   - name: long_prompt_output
-    prompt: "Summarize the book 'War and Peace' by Leo Tolstoy in 300 words."
+    prompt: |
+      Summarize the following excerpt from *War and Peace* by Leo Tolstoy in **no more than 300 words**. 
+      Focus on the main events, characters, and tone. Avoid personal opinions or interpretations.
+
+      [BEGIN EXCERPT]
+      “Well, Prince, so Genoa and Lucca are now just family estates of the Buonapartes. But I warn you, if you don’t tell me that this means war, 
+      if you still try to defend the infamies and horrors perpetrated by that Antichrist—I really believe he is Antichrist—I will have nothing 
+      more to do with you and you are no longer my friend, no longer my ‘faithful slave,’ as you call yourself! But how do you do? I see I have 
+      frightened you—sit down and tell me all the news.”
+
+      It was in July, 1805, and the speaker was the well-known Anna Pavlovna Scherer, maid of honor to the Empress Marya Fëdorovna. With these 
+      words she greeted Prince Vassily, a man of high rank and importance, who was the first to arrive at her soirée. Anna Pavlovna had been 
+      coughing for several days; she had a grippe, and having arranged a gathering of selected people, she seemed eager to put forth all her 
+      energies despite her illness.
+
+      Prince Vassily had been taking his seat near her, leaning his heavily-laced, gloved hand on the table, when she interrupted him.
+
+      “If you can’t see the difference between the Emperor and the Emperor Napoleon, I can have no more argument with you. You are my best friend, 
+      but if you remain on Napoleon’s side, I shall cease to regard you as such. Now, sit down and tell me about your family.”
+
+      The prince bent over Anna Pavlovna’s hand, kissed it, and sat down. “First of all, dear friend,” said he, “tell me how you are. Set your 
+      friend’s mind at rest; how can you be well when you have a grippe? You are suffering—well, get it over as quickly as you can!”
+      [END EXCERPT]
+
+      Please provide a concise summary that captures the essence of this passage.
     output_length: 100
     mean_input_tokens: 800
     stddev_input_tokens: 200

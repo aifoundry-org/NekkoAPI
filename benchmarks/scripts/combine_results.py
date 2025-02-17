@@ -101,7 +101,7 @@ def parse_results(directory):
             results[api_name][scenario_name].update(summary_metrics)
 
         # Parse system metrics file (if present)
-        system_metrics_file = api_folder / 'system_metrics.json'
+        system_metrics_file = api_folder / 'container_metrics.json'
         if system_metrics_file.exists():
             sys_metrics = parse_system_metrics(system_metrics_file)
             results[api_name][scenario_name].update(sys_metrics)

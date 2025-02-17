@@ -53,20 +53,13 @@ Before getting started, make sure you have the following installed:
 
 ## Installation & Setup
 
-1. **Clone the Repository:**
-
-   ```bash
-   git clone https://github.com/your_username/llm-performance-testing.git
-   cd llm-performance-testing
-   ```
-
-2. **Prepare the Environment:**
+1. **Prepare the Environment:**
 
    - The **Makefile** automates cloning necessary subprojects (e.g., `llmperf` and `vllm`).
    - Models required for certain APIs (e.g., Ollama) will be downloaded automatically via Make targets.
    - Docker Compose profiles are set up for different test modes (e.g., `nekko_mode`, `vllm_mode`, `ollama_mode`).
 
-3. **Build Docker Images & Setup Dependencies:**
+2. **Build Docker Images & Setup Dependencies:**
 
    The Makefile targets take care of building the images with the correct Dockerfiles and setting up the required services.
 
