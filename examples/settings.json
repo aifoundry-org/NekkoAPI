@@ -1,6 +1,4 @@
 {
-    "host": "0.0.0.0",
-    "port": 8000,
     "models": [
         {
             "model": "models/Llama-3.2-1B-Instruct-Q5_K_S.gguf",
@@ -9,13 +7,8 @@
         },
         {
             "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-            "model_alias": "smolm2-135m",
+            "model_alias": "smollm2",
             "n_ctx": 8192
-        },
-        {
-            "model": "models/OLMo-7B-Instruct-hf-0724-Q4_K.gguf",
-            "model_alias": "olmo-7b",
-            "n_ctx": 2048
         }
     ]
 }

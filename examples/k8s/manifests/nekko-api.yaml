@@ -1,0 +1,39 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: nekko-api-deployment
+  labels:
+    app: nekko-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nekko-api
+  template:
+    metadata:
+      labels:
+        app: nekko-api
+    spec:
+      containers:
+      - name: nekko-api-models
+        image: docker.io/library/nekko-api-models:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: nekko-api-svc
+  labels:
+    app: nekko-api
+spec:
+  ports:
+    - protocol: TCP
+      port: 3080
+      targetPort: 8000
+  selector:
+    app: nekko-api
+  type: LoadBalancer
