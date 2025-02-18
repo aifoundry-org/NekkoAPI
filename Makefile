@@ -45,6 +45,10 @@ test-docker:
 docker:
 	docker build -t nekko-api:latest -f docker/simple/Dockerfile .
 
+bake-models-docker:
+	cp examples/settings.json ./models
+	docker build -t nekko-api-models:latest -f docker/baked/Dockerfile ./models
+
 run-server:
 	python3 -m llama_cpp.server --model ${MODEL}
 
@@ -61,19 +65,19 @@ run-example-docker: example-models
 	  -it \
 	  nekko-api
 
+run-baked-docker:
+	docker run -p 8000:8000 -it nekko-api-models
+
 run-demo: example-models
 	docker compose -f docker/web/docker-compose.yml up
 
-example-models: models/SmolLM2-135M-Instruct-Q6_K.gguf models/Llama-3.2-1B-Instruct-Q5_K_S.gguf models/OLMo-7B-Instruct-hf-0724-Q4_K.gguf
+example-models: models/SmolLM2-135M-Instruct-Q6_K.gguf models/Llama-3.2-1B-Instruct-Q5_K_S.gguf
 
 models/SmolLM2-135M-Instruct-Q6_K.gguf: | models
 	curl -L https://huggingface.co/lmstudio-community/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q6_K.gguf -o $@
 
 models/Llama-3.2-1B-Instruct-Q5_K_S.gguf: | models
 	curl -L https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q5_K_S.gguf -o $@
-
-models/OLMo-7B-Instruct-hf-0724-Q4_K.gguf: | models
-	curl -L https://huggingface.co/aifoundry-org/OLMo-7B-0724-Instruct-hf-Quantized/resolve/main/OLMo-7B-Instruct-hf-0724-Q4_K.gguf -o $@
 
 models:
 	mkdir models
