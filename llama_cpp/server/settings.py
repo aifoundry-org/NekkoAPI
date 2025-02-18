@@ -219,10 +219,6 @@ class ServerSettings(BaseSettings):
         default=None,
         description="API key for authentication. If set all requests need to be authenticated.",
     )
-    interrupt_requests: bool = Field(
-        default=True,
-        description="Whether to interrupt requests when a new request is received.",
-    )
     disable_ping_events: bool = Field(
         default=False,
         description="Disable EventSource pings (may be needed for some clients).",
