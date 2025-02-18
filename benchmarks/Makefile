@@ -1,6 +1,6 @@
-.PHONY: perf_test_all perf_test_vllm perf_test_nekko perf_test_ollama cleanup
+.PHONY: perf_test_all perf_test_vllm perf_test_nekko perf_test_ollama perf_test_tgi cleanup
 
-perf_test_all: perf_test_nekko perf_test_ollama perf_test_vllm
+perf_test_all: perf_test_nekko perf_test_ollama perf_test_vllm perf_test_tgi
 
 clone_vllm:
 	@mkdir -p build
@@ -11,6 +11,11 @@ clone_vllm:
 clone_llmperf:
 	@if [ ! -d "build/llmperf" ]; then \
 		git clone --depth 1 https://github.com/ray-project/llmperf.git build/llmperf; \
+	fi
+
+clone_tgi:
+	@if [ ! -d "build/tgi" ]; then \
+		git clone --depth 1 https://github.com/huggingface/text-generation-inference build/tgi; \
 	fi
 
 models:
@@ -48,6 +53,15 @@ perf_test_ollama: | clone_llmperf models/qwen2.5-3b-instruct-q5_k_m.gguf
 		DOCKER_GID=$(getent group docker | cut -d: -f3) \
 		COMPOSE_PROFILES=ollama_mode \
 		docker compose up --exit-code-from llm_perf_ollama && \
+		docker compose down
+
+perf_test_tgi: | clone_llmperf clone_tgi models/qwen2.5-3b-instruct-q5_k_m.gguf
+	@DOCKER_GID=$(getent group docker | cut -d: -f3) \
+		COMPOSE_PROFILES=tgi_mode \
+		docker compose build llm_perf_tgi && \
+		DOCKER_GID=$(getent group docker | cut -d: -f3) \
+		COMPOSE_PROFILES=tgi_mode \
+		docker compose up --exit-code-from llm_perf_tgi && \
 		docker compose down
 
 cleanup:

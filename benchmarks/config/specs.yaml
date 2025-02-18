@@ -57,6 +57,23 @@ api_endpoints:
         ]
       }
 
+  tgi:
+    llm_api: "openai"
+    api_key: "secret_tgi"
+    api_base: "http://tgi_api:3000/v1"
+    container_name: "tgi_api"
+    additional_sampling_params: >
+      {
+        "stream": true,
+        "model": "qwen2.5-3b-instruct-q5_k_m",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant."
+          }
+        ]
+      }
+
 scenarios:
   - name: short_prompt_output
     prompt: "What is the capital of France?"

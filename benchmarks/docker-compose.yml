@@ -108,6 +108,37 @@ services:
       start_period: 10s
       retries: 5
 
+  tgi_api:
+    container_name: tgi_api
+    profiles:
+      - tgi_mode
+    image: tgi
+    build:
+      context: ./build/tgi
+      dockerfile: Dockerfile_llamacpp
+    platform: linux/amd64
+    volumes:
+      - ./models:/models
+    networks:
+      - performance-benchmark-network
+    environment:
+      - HF_HUB_ENABLE_HF_TRANSFER=0
+    ports:
+      - "8003:3000"
+    command: [
+      # If you have more than 10 cores, it may request too much RAM. Uncomment it
+      # "--max-batch-size", "1",
+      # "--max-total-tokens", "8192",
+      "--model-id", "Qwen/Qwen2.5-3B-Instruct",
+      "--model-gguf", "/models/qwen2.5-3b-instruct-q5_k_m.gguf"
+    ]
+    healthcheck:
+      test: python3 -c 'import urllib.request,sys; sys.exit(0) if b"Qwen/Qwen2.5-3B-Instruct" in urllib.request.urlopen("http://localhost:3000/v1/models").read() else sys.exit(1)'
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+
   llm_perf_nekko:
     <<: *llm-perf-common
     profiles:
@@ -134,6 +165,15 @@ services:
       ollama_api:
         condition: service_healthy
     command: ["sh", "-c", "python /app/collect_benchmarks.py --api-names ollama && python /combine_results.py"]
+
+  llm_perf_tgi:
+    <<: *llm-perf-common
+    profiles:
+      - tgi_mode
+    depends_on:
+      tgi_api:
+        condition: service_healthy
+    command: ["sh", "-c", "python /app/collect_benchmarks.py --api-names tgi && python /combine_results.py"]
 
 networks:
   performance-benchmark-network:

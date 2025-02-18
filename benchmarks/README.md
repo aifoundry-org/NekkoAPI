@@ -55,9 +55,9 @@ Before getting started, make sure you have the following installed:
 
 1. **Prepare the Environment:**
 
-   - The **Makefile** automates cloning necessary subprojects (e.g., `llmperf` and `vllm`).
+   - The **Makefile** automates cloning necessary subprojects (e.g., `llmperf`, `vllm`, `tgi`).
    - Models required for certain APIs (e.g., Ollama) will be downloaded automatically via Make targets.
-   - Docker Compose profiles are set up for different test modes (e.g., `nekko_mode`, `vllm_mode`, `ollama_mode`).
+   - Docker Compose profiles are set up for different test modes (e.g., `nekko_mode`, `vllm_mode`, `ollama_mode`, `tgi_mode`).
 
 2. **Build Docker Images & Setup Dependencies:**
 
@@ -70,7 +70,7 @@ Before getting started, make sure you have the following installed:
 Test parameters and API endpoints are defined in the `config/specs.yaml` file. This file includes:
 
 - **Global Settings:** Timeout, iterations, and results directory.
-- **API Endpoints:** Settings for each API (e.g., `nekko`, `vllm`, `ollama`), including the model, API key, base URL, and extra sampling parameters.
+- **API Endpoints:** Settings for each API (e.g., `nekko`, `vllm`, `ollama`, `tgi`), including the model, API key, base URL, and extra sampling parameters.
 - **Scenarios:** A list of test scenarios (e.g., short prompt, medium prompt, long prompt, high concurrency) with their specific parameters.
 
 Other configuration files include:
@@ -112,6 +112,12 @@ You can run all tests or target specific API modes using the provided Makefile c
     make perf_test_ollama
     ```
 
+  - **TGI:**
+
+    ```bash
+    make perf_test_tgi
+    ```
+
 Each target performs the following steps:
 1. Clones necessary subprojects (if not already present).
 2. Downloads required models.
@@ -137,8 +143,6 @@ make cleanup
   - **Performance Metrics:** Throughput (tokens/sec) and latency (time to first token and complete response).
   - **System Metrics:** CPU usage and memory consumption.
 - **Aggregated Report:** The `scripts/combine_results.py` script aggregates individual test results and generates a CSV report (`results/aggregated_benchmarks.csv`).
-
-The suite also uses an OpenTelemetry collector (configured in `config/otel-collector-config.yaml`) to gather and output detailed logs for troubleshooting and analysis.
 
 ---
 
