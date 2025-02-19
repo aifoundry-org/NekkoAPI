@@ -1,14 +1,8 @@
 {
     "models": [
         {
-            "model": "models/Llama-3.2-1B-Instruct-Q5_K_S.gguf",
-            "model_alias": "llama",
-            "n_ctx": 8192
-        },
-        {
             "model": "models/SmolLM2-135M-Instruct-Q6_K.gguf",
-            "model_alias": "smollm2",
-            "n_ctx": 8192
+            "model_alias": "smollm2"
         }
     ]
 }

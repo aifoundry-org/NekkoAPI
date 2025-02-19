@@ -71,13 +71,10 @@ run-baked-docker:
 run-demo: example-models
 	docker compose -f docker/web/docker-compose.yml up
 
-example-models: models/SmolLM2-135M-Instruct-Q6_K.gguf models/Llama-3.2-1B-Instruct-Q5_K_S.gguf
+example-models: models/SmolLM2-135M-Instruct-Q6_K.gguf
 
 models/SmolLM2-135M-Instruct-Q6_K.gguf: | models
 	curl -L https://huggingface.co/lmstudio-community/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q6_K.gguf -o $@
-
-models/Llama-3.2-1B-Instruct-Q5_K_S.gguf: | models
-	curl -L https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q5_K_S.gguf -o $@
 
 models:
 	mkdir models
