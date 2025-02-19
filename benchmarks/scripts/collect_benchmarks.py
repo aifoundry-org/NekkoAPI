@@ -146,7 +146,9 @@ def run_scenario(
 
     # Merge JSON parameters
     merged_params = json.loads(api_config["additional_sampling_params"])
-    merged_params.update({"prompt": prompt, "max_tokens": output_length})
+    messages = merged_params["messages"]
+    messages.append({"role": "user", "content": prompt})
+    merged_params.update({"max_tokens": output_length, "messages": messages})
     merged_params_json = json.dumps(merged_params)
 
     results_dir_run = os.path.join(results_dir, f"{api_config['name']}_{scenario_name}")

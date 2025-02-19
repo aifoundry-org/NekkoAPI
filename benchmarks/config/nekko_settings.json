@@ -3,7 +3,7 @@
     "port": 8000,
     "models": [
         {
-            "model": "models/qwen2.5-3b-instruct-q5_k_m.gguf",
+            "model": "models/qwen2.5-0.5b-instruct-q5_k_m.gguf",
             "model_alias": "qwen2.5",
             "n_ctx": 8192
         }

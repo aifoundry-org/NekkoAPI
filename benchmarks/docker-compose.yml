@@ -70,7 +70,7 @@ services:
       - performance-benchmark-network
     entrypoint: ["/bin/bash", "-c", "ollama serve & until ollama list > /dev/null 2>&1; do sleep 5; done && /ollama-setup.sh && wait %1"]
     healthcheck:
-      test: bash -c "ollama list | grep -q 'qwen2.5-3b-instruct-q5_k_m' || exit 1"
+      test: bash -c "ollama list | grep -q 'qwen2.5-0.5b-instruct-q5_k_m' || exit 1"
       interval: 10s
       timeout: 30s
       retries: 5
@@ -97,8 +97,7 @@ services:
       - "8001:8001"
     command: [
       "--port", "8001",
-      # Commented out: For testing large models, adjust as needed:
-      # "--model", "Qwen/Qwen2.5-3B-Instruct",
+      "--model", "Qwen/Qwen2.5-0.5B-Instruct",
       "--dtype", "float32"
     ]
     healthcheck:
@@ -126,14 +125,13 @@ services:
     ports:
       - "8003:3000"
     command: [
-      # If you have more than 10 cores, it may request too much RAM. Uncomment it
-      # "--max-batch-size", "1",
-      # "--max-total-tokens", "8192",
-      "--model-id", "Qwen/Qwen2.5-3B-Instruct",
-      "--model-gguf", "/models/qwen2.5-3b-instruct-q5_k_m.gguf"
+      "--max-batch-size", "1",
+      "--max-total-tokens", "8192",
+      "--model-id", "Qwen/Qwen2.5-0.5B-Instruct",
+      "--model-gguf", "/models/qwen2.5-0.5b-instruct-q5_k_m.gguf"
     ]
     healthcheck:
-      test: python3 -c 'import urllib.request,sys; sys.exit(0) if b"Qwen/Qwen2.5-3B-Instruct" in urllib.request.urlopen("http://localhost:3000/v1/models").read() else sys.exit(1)'
+      test: python3 -c 'import urllib.request,sys; sys.exit(0) if b"Qwen/Qwen2.5-0.5B-Instruct" in urllib.request.urlopen("http://localhost:3000/v1/models").read() else sys.exit(1)'
       interval: 30s
       timeout: 5s
       start_period: 10s

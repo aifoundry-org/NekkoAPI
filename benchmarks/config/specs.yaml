@@ -30,7 +30,7 @@ api_endpoints:
     additional_sampling_params: >
       {
         "stream": true,
-        "model": "facebook/opt-125m",
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
         "chat_template": "{% for message in messages %}{{ message.content }}{{ eos_token }}{% endfor %}",
         "messages": [
           {
@@ -48,7 +48,7 @@ api_endpoints:
     additional_sampling_params: >
       {
         "stream": true,
-        "model": "qwen2.5-3b-instruct-q5_k_m",
+        "model": "qwen2.5-0.5b-instruct-q5_k_m",
         "messages": [
           {
             "role": "system",
@@ -65,7 +65,7 @@ api_endpoints:
     additional_sampling_params: >
       {
         "stream": true,
-        "model": "qwen2.5-3b-instruct-q5_k_m",
+        "model": "qwen2.5-0.5b-instruct-q5_k_m",
         "messages": [
           {
             "role": "system",
