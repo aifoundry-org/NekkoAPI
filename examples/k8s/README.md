@@ -26,8 +26,8 @@ kubectl apply -f manifests/
 (Services are exposed using `LoadBalancer` type of Service resource -
 please edit accordingly if it is not available on your system.)
 
-Once deployed, Nekko API should be available on port `3080`. You can
-find external IP by running:
+Once deployed, Nekko API should be available on port `3080` and Open WebUI
+should be available on port `3090`. You can find external IP by running:
 
 ```sh
 kubectl get svc
