@@ -178,3 +178,7 @@ cython_debug/
 
 # downloaded model .bin files
 docker/open_llama/*.bin
+
+benchmarks/results
+benchmarks/models
+benchmarks/build
