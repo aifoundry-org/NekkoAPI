@@ -219,7 +219,8 @@ func (p *Proxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 func v1Models(router *request_router.RequestRouter) func(http.ResponseWriter, *http.Request) {
 
 	return func(rw http.ResponseWriter, req *http.Request) {
-		// TODO: refactor into function on the router.
+		rw.Header().Set("Content-Type", "application/json")
+
 		models := router.ModelAliases()
 
 		// Initialize the top-level JSON structure
