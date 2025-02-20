@@ -162,6 +162,11 @@ func (rr *RequestRouter) ChooseWorker(req map[string]interface{}) (*Worker, erro
 	maxIndex := findLongestCommonPrefixIndex(availablePromptish, reqPromptish)
 
 	var selectedWorker Worker
+	// TODO: instead of simple logic use cost function,
+	//       taking into account prompt lenght, kv (promptish)
+	//       match, busy estimates (sampling or max_completion_tokens)
+	// TODO: Estimate cost approximation function from history
+	//       (for individual nodes).
 
 	if maxIndex < 0 {
 		// Select a random worker from the available
