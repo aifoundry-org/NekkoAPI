@@ -20,15 +20,19 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
+# Create app directory and set working directory
 RUN mkdir /app
 WORKDIR /app
-COPY . /app
 
+# Upgrade pip and install Python dependencies first
 RUN python3 -m pip install --upgrade pip
-
 RUN python3 -m pip install --upgrade pip pytest cmake scikit-build setuptools fastapi uvicorn sse-starlette pydantic-settings starlette-context
 
-RUN CMAKE_ARGS="-DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS" pip install --verbose -e ".[server]";
+# Copy the rest of the application
+COPY . /app
+
+# Install the application with BLAS support
+RUN CMAKE_ARGS="-DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS" pip install --verbose -e ".[server]"
 
 # Set environment variable for the host
 ENV HOST=0.0.0.0

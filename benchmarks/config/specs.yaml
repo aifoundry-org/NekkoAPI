@@ -1,0 +1,140 @@
+global:
+  timeout: 600
+  iterations: 10
+  results_dir: "results"
+
+# Change model name in specs if you change it in docker-compose
+api_endpoints:
+  nekko:
+    llm_api: "openai"
+    api_key: "secret_abcdefg"
+    api_base: "http://nekko_api:8000/v1"
+    container_name: "nekko_api"
+    additional_sampling_params: >
+      {
+        "stream": true,
+        "model": "qwen2.5",
+        "messages": [
+          {
+            "role": "system", 
+            "content": "You are a helpful assistant."
+          }
+        ]
+      }
+
+  vllm:
+    llm_api: "openai"
+    api_key: "secret_vllm"
+    api_base: "http://vllm_api:8001/v1"
+    container_name: "vllm_api"
+    additional_sampling_params: >
+      {
+        "stream": true,
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "chat_template": "{% for message in messages %}{{ message.content }}{{ eos_token }}{% endfor %}",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant."
+          }
+        ]
+      }
+
+  ollama:
+    llm_api: "openai"
+    api_key: "secret_ollama"
+    api_base: "http://ollama_api:11434/v1"
+    container_name: "ollama_api"
+    additional_sampling_params: >
+      {
+        "stream": true,
+        "model": "qwen2.5-0.5b-instruct-q5_k_m",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant."
+          }
+        ]
+      }
+
+  tgi:
+    llm_api: "openai"
+    api_key: "secret_tgi"
+    api_base: "http://tgi_api:3000/v1"
+    container_name: "tgi_api"
+    additional_sampling_params: >
+      {
+        "stream": true,
+        "model": "qwen2.5-0.5b-instruct-q5_k_m",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a helpful assistant."
+          }
+        ]
+      }
+
+scenarios:
+  - name: short_prompt_output
+    prompt: "What is the capital of France?"
+    output_length: 20
+    mean_input_tokens: 550
+    stddev_input_tokens: 150
+    mean_output_tokens: 150
+    stddev_output_tokens: 10
+    num_concurrent_requests: 1
+    max_num_completed_requests: 4
+
+  - name: medium_prompt_output
+    prompt: "Summarize the lifecycle of a butterfly in detail."
+    output_length: 50
+    mean_input_tokens: 600
+    stddev_input_tokens: 100
+    mean_output_tokens: 150
+    stddev_output_tokens: 50
+    num_concurrent_requests: 1
+    max_num_completed_requests: 4
+
+  - name: long_prompt_output
+    prompt: |
+      Summarize the following excerpt from *War and Peace* by Leo Tolstoy in **no more than 300 words**. 
+      Focus on the main events, characters, and tone. Avoid personal opinions or interpretations.
+
+      [BEGIN EXCERPT]
+      “Well, Prince, so Genoa and Lucca are now just family estates of the Buonapartes. But I warn you, if you don’t tell me that this means war, 
+      if you still try to defend the infamies and horrors perpetrated by that Antichrist—I really believe he is Antichrist—I will have nothing 
+      more to do with you and you are no longer my friend, no longer my ‘faithful slave,’ as you call yourself! But how do you do? I see I have 
+      frightened you—sit down and tell me all the news.”
+
+      It was in July, 1805, and the speaker was the well-known Anna Pavlovna Scherer, maid of honor to the Empress Marya Fëdorovna. With these 
+      words she greeted Prince Vassily, a man of high rank and importance, who was the first to arrive at her soirée. Anna Pavlovna had been 
+      coughing for several days; she had a grippe, and having arranged a gathering of selected people, she seemed eager to put forth all her 
+      energies despite her illness.
+
+      Prince Vassily had been taking his seat near her, leaning his heavily-laced, gloved hand on the table, when she interrupted him.
+
+      “If you can’t see the difference between the Emperor and the Emperor Napoleon, I can have no more argument with you. You are my best friend, 
+      but if you remain on Napoleon’s side, I shall cease to regard you as such. Now, sit down and tell me about your family.”
+
+      The prince bent over Anna Pavlovna’s hand, kissed it, and sat down. “First of all, dear friend,” said he, “tell me how you are. Set your 
+      friend’s mind at rest; how can you be well when you have a grippe? You are suffering—well, get it over as quickly as you can!”
+      [END EXCERPT]
+
+      Please provide a concise summary that captures the essence of this passage.
+    output_length: 100
+    mean_input_tokens: 800
+    stddev_input_tokens: 200
+    mean_output_tokens: 150
+    stddev_output_tokens: 100
+    num_concurrent_requests: 1
+    max_num_completed_requests: 4
+
+  - name: high_concurrency
+    prompt: "What are the main causes of World War I?"
+    output_length: 20
+    mean_input_tokens: 550
+    stddev_input_tokens: 150
+    mean_output_tokens: 150
+    stddev_output_tokens: 10
+    num_concurrent_requests: 4
+    max_num_completed_requests: 1

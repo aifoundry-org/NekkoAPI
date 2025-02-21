@@ -1,0 +1,20 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends git
+
+COPY build/llmperf /app/llmperf
+
+RUN echo "PyYAML==6.0.1" > requirements.txt && \
+    echo "psutil==5.9.8" >> requirements.txt
+
+RUN apt-get update && \
+    pip install --no-cache-dir -e /app/llmperf && \
+    pip install -r requirements.txt && \
+    pip install docker
+
+COPY scripts/collect_benchmarks.py /app/collect_benchmarks.py
+RUN chmod +x /app/collect_benchmarks.py
+
+CMD ["python", "/app/collect_benchmarks.py"]
