@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-webui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: open-webui
+  template:
+    metadata:
+      labels:
+        app: open-webui
+    spec:
+      containers:
+        - name: open-webui
+          image: ghcr.io/open-webui/open-webui:0.4.8
+          ports:
+            - containerPort: 8080
+          env:
+            - name: WEBUI_AUTH
+              value: 'false'
+            - name: WEBUI_NAME
+              value: NekkoAPI UI
+            - name: ENABLE_OLLAMA_API
+              value: 'false'
+            - name: OPENAI_API_BASE_URL
+              value: http://nekko-lb-svc.default:3090/v1
+          volumeMounts:
+            - name: ui
+              mountPath: /app/backend/data
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+      volumes:
+        - name: ui
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-webui
+spec:
+  selector:
+    app: open-webui
+  ports:
+    - protocol: TCP
+      port: 4080
+      targetPort: 8080
+  type: LoadBalancer
