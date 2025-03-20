@@ -1,0 +1,31 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: worker-pod
+  namespace: default
+  labels:
+    app: nekko-worker
+    model-alias: {{.ModelAlias}}
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: {{.NodeName}}
+  containers:
+  - name: nekko-worker
+    image: ghcr.io/vidas/nekko-api:latest
+    ports:
+    - containerPort: 8000
+    env:
+      - name: MODEL_ALIAS
+        value: {{.ModelAlias}}
+      - name: MODEL
+        value: {{.ModelURL}}
+      - name: MODEL_PATH
+        value: {{.ModelPath}}
+    volumeMounts:
+    - name: model-cache-dir
+      mountPath: /var/lib/nekko/cache
+      readOnly: true
+  volumes:
+  - name: model-cache-dir
+    hostPath:
+      path: /var/nekko/cache

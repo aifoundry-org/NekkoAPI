@@ -2,10 +2,12 @@ package request_router
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"sync"
 	"time"
 
@@ -35,6 +37,7 @@ type Model struct {
 
 // Worker represents a worker node that can serve LLM models.
 type Worker struct {
+	Name    string // Unique resource name
 	URL     string // URL of the worker node
 	Model   Model  // List of deployed LLM models on this node
 	BusyIds map[string]bool
@@ -49,8 +52,12 @@ type RouterState struct {
 
 // RequestRouter handles routing of inference requests to worker nodes.
 type RequestRouter struct {
-	state *RouterState
-	rnd   *rand.Rand
+	state            *RouterState
+	rnd              *rand.Rand
+	syncInterval     time.Duration
+	syncTimer        *time.Timer
+	syncTimerRunning bool
+	syncTimerMutex   sync.Mutex
 }
 
 // NewRequestRouter initializes a new RequestRouter with the provided worker nodes.
@@ -58,12 +65,50 @@ func NewRequestRouter(workerNodes []Worker) *RequestRouter {
 	src := rand.NewSource(time.Now().UnixNano())
 	rnd := rand.New(src)
 
-	return &RequestRouter{
+	router := &RequestRouter{
 		state: &RouterState{
 			Workers: workerNodes,
 		},
-		rnd: rnd,
+		rnd:          rnd,
+		syncInterval: 60 * time.Second, // Default to 60 seconds
 	}
+
+	// Start the periodic sync if interval > 0
+	if router.syncInterval > 0 {
+		router.startPeriodicSync()
+	}
+
+	return router
+}
+
+// startPeriodicSync starts a timer to periodically sync workers from K8s
+func (rr *RequestRouter) startPeriodicSync() {
+	rr.syncTimerMutex.Lock()
+	defer rr.syncTimerMutex.Unlock()
+
+	// If timer is already running, stop it
+	if rr.syncTimerRunning {
+		if rr.syncTimer != nil {
+			rr.syncTimer.Stop()
+		}
+	}
+
+	// Don't start timer if interval is 0
+	if rr.syncInterval <= 0 {
+		rr.syncTimerRunning = false
+		return
+	}
+
+	// Create and start a new timer
+	rr.syncTimer = time.AfterFunc(rr.syncInterval, func() {
+		log.Printf("Periodic sync triggered (every %v)\n", rr.syncInterval)
+		rr.SyncWorkersFromK8s()
+
+		// Restart the timer for the next sync
+		rr.startPeriodicSync()
+	})
+
+	rr.syncTimerRunning = true
 }
 
 func (rr *RequestRouter) ModelAliases() []string {
@@ -238,26 +283,142 @@ func (rr *RequestRouter) AddRequestError(recordId string, e error) {
 	}
 }
 
-func (rr *RequestRouter) SeedWorkersFromK8s() {
-	urls, _ := getPodURLs("nekko-api", "default", "8000")
-	var workers []Worker
-	log.Println("Seeding workers...")
-	// TODO: fetch model names from the workers?
-	for _, url := range urls {
-		worker := Worker{
-			URL: url,
-			Model: Model{
-				Alias:    "smollm2",
-				FullName: "smollm2",
-			},
+// TODO: can we just call SyncWorkersFromK8s here?
+func (rr *RequestRouter) AddWorker(worker Worker) {
+	rr.state.mu.Lock()
+	defer rr.state.mu.Unlock()
+	rr.state.Workers = append(rr.state.Workers, worker)
+}
+
+// DeleteWorkerByName removes a worker from the router's state by its name
+func (rr *RequestRouter) DeleteWorkerByName(name string) bool {
+	rr.state.mu.Lock()
+	defer rr.state.mu.Unlock()
+	
+	for i, worker := range rr.state.Workers {
+		if worker.Name == name {
+			// Remove the worker by replacing it with the last element
+			// and then truncating the slice
+			rr.state.Workers[i] = rr.state.Workers[len(rr.state.Workers)-1]
+			rr.state.Workers = rr.state.Workers[:len(rr.state.Workers)-1]
+			log.Printf("Deleted worker %s from router state", name)
+			return true
 		}
-		workers = append(workers, worker)
-		log.Printf("Adding worker %v with model %v\n", worker.URL, worker.Model.Alias)
 	}
+	
+	log.Printf("Worker %s not found in router state", name)
+	return false
+}
+
+// SyncWorkersFromK8s synchronizes the worker list with Kubernetes pods
+// Returns the number of workers after synchronization
+func (rr *RequestRouter) SyncWorkersFromK8s() int {
+	k8sWorkers, _ := getPodWorkersFromK8s("nekko-worker", "default", "8000")
+	log.Println("Syncing workers from K8s...")
 
 	rr.state.mu.Lock()
 	defer rr.state.mu.Unlock()
-	rr.state.Workers = workers
+
+	// Create a map of existing workers by name for quick lookup
+	existingWorkers := make(map[string]*Worker)
+	for i := range rr.state.Workers {
+		existingWorkers[rr.state.Workers[i].Name] = &rr.state.Workers[i]
+	}
+
+	// Create a map of K8s workers by name
+	k8sWorkerMap := make(map[string]Worker)
+	for _, worker := range k8sWorkers {
+		k8sWorkerMap[worker.Name] = worker
+	}
+
+	// Create a new list of workers
+	var updatedWorkers []Worker
+
+	// Add or update workers
+	for name, k8sWorker := range k8sWorkerMap {
+		if existingWorker, exists := existingWorkers[name]; exists {
+			// Worker pods are immutable, so just use the existing worker
+			updatedWorkers = append(updatedWorkers, *existingWorker)
+			// log.Printf("Kept existing worker %s with model %s\n", existingWorker.URL, existingWorker.Model.Alias)
+		} else {
+			// Add new worker
+			updatedWorkers = append(updatedWorkers, k8sWorker)
+			log.Printf("Added new worker %s with model %s\n", k8sWorker.URL, k8sWorker.Model.Alias)
+		}
+	}
+
+	// Log removed workers
+	for name := range existingWorkers {
+		if _, exists := k8sWorkerMap[name]; !exists {
+			log.Printf("Removed worker %s\n", name)
+		}
+	}
+
+	// Update the workers list
+	rr.state.Workers = updatedWorkers
+
+	return len(updatedWorkers)
+}
+
+// HandleSyncWorkers is an HTTP handler that triggers worker synchronization
+func (rr *RequestRouter) HandleSyncWorkers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Reset the sync timer when manually triggered
+	rr.startPeriodicSync()
+
+	workerCount := rr.SyncWorkersFromK8s()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, `{"status":"success","message":"Workers synchronized","count":%d}`, workerCount)
+}
+
+// HandleListWorkers is an HTTP handler that returns the current list of workers
+func (rr *RequestRouter) HandleListWorkers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	rr.state.mu.RLock()
+	defer rr.state.mu.RUnlock()
+
+	// Create a simplified version of workers for the response
+	type WorkerInfo struct {
+		Name       string `json:"name"`
+		ModelName  string `json:"model_name"`
+		ModelAlias string `json:"model_alias"`
+	}
+
+	workers := make([]WorkerInfo, 0, len(rr.state.Workers))
+	for _, worker := range rr.state.Workers {
+		workers = append(workers, WorkerInfo{
+			Name:       worker.Name,
+			ModelName:  worker.Model.FullName,
+			ModelAlias: worker.Model.Alias,
+		})
+	}
+
+	response := map[string]interface{}{
+		"status":  "success",
+		"count":   len(workers),
+		"workers": workers,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	// Encode the response as JSON
+	encoder := json.NewEncoder(w)
+	if err := encoder.Encode(response); err != nil {
+		log.Printf("Error encoding worker list: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func getKubeConfig() (*rest.Config, error) {
@@ -271,7 +432,8 @@ func getKubeConfig() (*rest.Config, error) {
 	return config, nil
 }
 
-func getPodURLs(appLabel, namespace, port string) ([]string, error) {
+// getPodWorkersFromK8s discovers worker pods in Kubernetes and returns them as Worker objects
+func getPodWorkersFromK8s(appLabel, namespace, port string) ([]Worker, error) {
 	config, err := getKubeConfig()
 	if err != nil {
 		return nil, err
@@ -289,16 +451,33 @@ func getPodURLs(appLabel, namespace, port string) ([]string, error) {
 		return nil, fmt.Errorf("failed to list pods: %v", err)
 	}
 
-	var urls []string
+	var workers []Worker
 	for _, pod := range pods.Items {
 		if pod.Status.Phase == v1.PodRunning {
+			// Extract model-alias from pod labels
+			modelAlias, exists := pod.Labels["model-alias"]
+			if !exists {
+				modelAlias = "unknown" // Default if label doesn't exist
+			}
+
 			for _, ip := range pod.Status.PodIPs {
-				urls = append(urls, fmt.Sprintf("http://%s:%s", ip.IP, port))
+				url := fmt.Sprintf("http://%s:%s", ip.IP, port)
+				worker := Worker{
+					Name: pod.Name,
+					URL:  url,
+					Model: Model{
+						Alias:    modelAlias,
+						FullName: modelAlias,
+					},
+				}
+				workers = append(workers, worker)
+				// TODO: debug.
+				// log.Printf("Adding worker %v with model %v\n", worker.URL, worker.Model.Alias)
 			}
 		}
 	}
 
-	return urls, nil
+	return workers, nil
 }
 
 // Return emulated prompt by concatenating request query messages.

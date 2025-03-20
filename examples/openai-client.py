@@ -1,13 +1,8 @@
 import json
 from openai import OpenAI
 
-model = "smollm2"
-# model = "olmo-7b"
-# uri = "http://localhost:8000/v1/"
-uri = "http://localhost:8080/v1/"
-
-# model = "gpt-4o-mini"
-# uri = "https://api.openai.com/v1/"
+model = "smol"
+uri = "http://localhost:3090/v1/"
 
 client = OpenAI(
     base_url=uri
@@ -205,7 +200,7 @@ def example_logprobs():
 
 
 def main():
-    example_logprobs()
+    example_simple()
 
 
 if __name__ == "__main__":

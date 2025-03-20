@@ -5,11 +5,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/aifoundry-org/load-balancer/request_router"
+	"github.com/aifoundry-org/load-balancer/worker_manager"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"request_router/request_router"
 	"strconv"
 	"strings"
 )
@@ -247,28 +249,65 @@ func v1Models(router *request_router.RequestRouter) func(http.ResponseWriter, *h
 	}
 }
 
+// authMiddleware is a simple middleware that checks for a bearer token
+func authMiddleware(next http.Handler) http.Handler {
+	// FIXME: Hardcoded token for now, use proper config.
+	const validToken = "nekko-admin-token"
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if the path starts with /api/v1/
+		if strings.HasPrefix(r.URL.Path, "/api/v1/") {
+			// Get the Authorization header
+			authHeader := r.Header.Get("Authorization")
+
+			// Check if the header is present and in the correct format
+			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+				log.Printf("Authentication failed: No bearer token provided for %s", r.URL.Path)
+				http.Error(w, "Unauthorized: Bearer token required", http.StatusUnauthorized)
+				return
+			}
+
+			// Extract the token
+			token := strings.TrimPrefix(authHeader, "Bearer ")
+
+			// Validate the token
+			if token != validToken {
+				log.Printf("Authentication failed: Invalid token for %s", r.URL.Path)
+				http.Error(w, "Unauthorized: Invalid token", http.StatusUnauthorized)
+				return
+			}
+
+			log.Printf("Authentication successful for %s", r.URL.Path)
+		}
+
+		// If we get here, either the path doesn't require auth or the token is valid
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
-	// Manual seed for testing.
-	// model_llama := request_router.Model{
-	// 	FullName: "llama",
-	// 	Alias:    "llama",
-	// }
-	// worker := request_router.Worker{
-	// 	URL:   "http://localhost:8000",
-	// 	Model: model_llama,
-	// }
 	router := request_router.NewRequestRouter([]request_router.Worker{})
-	router.SeedWorkersFromK8s()
+	router.SyncWorkersFromK8s()
 
 	proxy := NewProxy(router)
+
+	worker_manager := worker_manager.NewWorkerManagerAPI(router)
 
 	mux := http.NewServeMux()
 
 	mux.Handle("/", proxy)
 
 	mux.HandleFunc("/v1/models", v1Models(router))
-	// TODO: add function to handle /v1/models
+
+	// Worker management endpoints
+	mux.Handle("/api/v1/workers", worker_manager)
+	mux.HandleFunc("/api/v1/workers/sync", router.HandleSyncWorkers)
+	mux.HandleFunc("/api/v1/workers/list", router.HandleListWorkers)
+
+	// Apply authentication middleware
+	handler := authMiddleware(mux)
 
 	// TODO: refactor into proxy mod.
-	http.ListenAndServe(":8080", mux)
+	log.Println("Starting server on :8080")
+	http.ListenAndServe(":8080", handler)
 }

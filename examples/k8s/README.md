@@ -15,6 +15,13 @@ NekkoAPI runtime and produces a docker image `nekko-api-models`.
 
 You need to have k8s cluster up and running with `kubectl` configured.
 
+TODO: this shouldn't be this complicated.
+Push your images to a prefered registry that can be accessed by k8s.
+Please update manifests so they reference your container registry.
+
+
+## Deploy
+
 Depending on your k8s environment you may need to upload the image
 to the registry. Once image is available on your k8s cluster, you
 can deploy everything with:
