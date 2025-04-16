@@ -38,6 +38,8 @@ LLM models from [Hugging Face](https://huggingface.co/) with:
 make example-models
 ```
 
+### Running the API
+
 With models downloaded you can run the Nekko API server to use them
 with:
 
@@ -49,6 +51,34 @@ API will be accesible on `http://localhost:8000`.
 
 There is a small example using OpenAPI client library that can
 be used to try out the server in `examples/openai-client.py`.
+
+### Running the API with Open WebUI
+
+If you would like to explore the models with an intuitive GUI, run the provided
+example script:
+
+```sh
+make run-demo
+```
+
+Both the API and the UI will be available on `http://localhost`.
+
+> [!WARNING]
+> Not every feature of Open WebUI will work at this time. The API server is
+> currently unstable and feature-incomplete and may crash if called with
+> unsupported parameters.
+
+## Deployment
+
+### With Docker Compose
+
+> [!WARNING]
+> At the moment, our images are only built for x86_64 machines. If you need to
+> deploy the project to a different architecture, take a look at
+> `docker/web/docker-compose.yml` where the image is built from scratch.
+
+* [API-only setup](/examples/docker-compose/api)
+* [API + UI + nginx](/examples/docker-compose/ui)
 
 
 ## Development
