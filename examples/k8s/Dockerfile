@@ -72,5 +72,18 @@ ENV PORT=8000
 # Expose a port for the server
 EXPOSE 8000
 
+# Defaults
+ENV N_CTX=4096
+ENV N_BATCH=512
+ENV N_UBATCH=512
+ENV N_THREADS=-1
+ENV N_THREADS_BATCH=-1
+ENV MUL_MAT_Q=false
+ENV FLASH_ATTN=false
+ENV NUMA=false
+ENV CACHE=false
+ENV CACHE_TYPE=ram
+ENV CACHE_SIZE=2147483648
+
 # Run the server start script
 CMD ["/bin/sh", "/app/run.sh"]
