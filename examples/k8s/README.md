@@ -1,30 +1,27 @@
 # Quick start
 
 This folder contains an example kubernetes config (manifests) to deploy
-NekkoAPI together with prometheus and graphana.
+NekkoAPI together with prometheus and graphana. It depends on
+Ainekko platform docker images being available on docker hub.
+Specifically:
+- `aifoundryorg/storage-manager`
+- `aifoundryorg/nekko-api`
+- `aifoundryorg/load-balancer`
 
-First you need to build the docker image with example LLM models included.
-This can be accoplished by running:
+TODO: scripts demonstrating how to control the cluster (instantiate
+workers with models from eg. Hugging Face)
 
-```sh
-make requirements
-```
 
-This downloads example models (Llama-3.2-1B and Smollm2-135m), builds
-NekkoAPI runtime and produces a docker image `nekko-api-models`.
+## Requirements
 
 You need to have k8s cluster up and running with `kubectl` configured.
 
-TODO: this shouldn't be this complicated.
-Push your images to a prefered registry that can be accessed by k8s.
-Please update manifests so they reference your container registry.
+TODO: example how to setup minikube cluster
 
 
 ## Deploy
 
-Depending on your k8s environment you may need to upload the image
-to the registry. Once image is available on your k8s cluster, you
-can deploy everything with:
+To deploy basic ainekko system on your k8s cluster you just run:
 
 ```sh
 kubectl apply -f manifests/
@@ -40,5 +37,7 @@ find external IP by running:
 kubectl get svc
 ```
 
-Disclaimer: This is just an example configuration for testing and devlopment
-of NekkoAPI and is not intented for production use.
+TODO: port forwarding instruction
+
+Disclaimer: This is just an example configuration for testing and development of
+NekkoAPI and is not intented for production use.

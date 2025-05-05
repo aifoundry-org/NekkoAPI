@@ -45,10 +45,6 @@ test-docker:
 docker:
 	docker build -t nekko-api:latest -f docker/simple/Dockerfile .
 
-bake-models-docker:
-	cp examples/settings.json ./models
-	docker build -t nekko-api-models:latest -f docker/baked/Dockerfile ./models
-
 run-server:
 	python3 -m llama_cpp.server --model ${MODEL}
 
@@ -64,9 +60,6 @@ run-example-docker: example-models
 	  -e CONFIG_FILE=settings.json \
 	  -it \
 	  nekko-api
-
-run-baked-docker:
-	docker run -p 8000:8000 -it nekko-api-models
 
 run-demo: example-models
 	docker compose -f docker/web/docker-compose.yml up

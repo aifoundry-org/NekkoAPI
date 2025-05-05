@@ -11,7 +11,7 @@ spec:
     kubernetes.io/hostname: {{.NodeName}}
   containers:
   - name: nekko-worker
-    image: ghcr.io/vidas/nekko-api:latest
+    image: docker.io/aifoundryorg/nekko-api:latest
     ports:
     - containerPort: 8000
     env:

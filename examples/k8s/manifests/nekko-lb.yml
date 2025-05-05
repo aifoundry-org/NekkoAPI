@@ -46,7 +46,7 @@ spec:
       serviceAccountName: nekko-lb-sa
       containers:
       - name: nekko-lb
-        image: ghcr.io/vidas/nekko-lb:latest
+        image: docker.io/aifoundryorg/load-balancer:latest
         ports:
         - containerPort: 8080
 ---
