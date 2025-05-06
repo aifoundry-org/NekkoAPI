@@ -1,6 +1,9 @@
-APP_NAME := nekko-lb
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+APP_NAME := aifoundryorg/load-balancer
 IMAGE_NAME := $(APP_NAME)
-VERSION := 0.1.0
 DOCKER_TAG := $(IMAGE_NAME):$(VERSION)
 
 .PHONY: deps

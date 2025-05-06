@@ -155,7 +155,9 @@ func (w *Worker) RemoveBusy(recordId string) {
 
 // ChooseWorker selects a worker node based on the routing logic.
 // Currently, it selects a random worker node that has the required model.
-func (rr *RequestRouter) ChooseWorker(req map[string]interface{}) (*Worker, error) {
+func (rr *RequestRouter) ChooseWorker(
+	req map[string]interface{},
+) (*Worker, error) {
 	rr.state.mu.RLock()
 	defer rr.state.mu.RUnlock()
 
@@ -197,7 +199,12 @@ func (rr *RequestRouter) ChooseWorker(req map[string]interface{}) (*Worker, erro
 		if len(history) > 0 {
 			lastRecord := history[len(history)-1]
 			promptish := lastRecord.Promptish()
-			log.Printf("Worker %v queue %v kv-match %v\n", worker.URL, worker.BusyLoad(), longestCommonPrefixLength(reqPromptish, promptish))
+			log.Printf(
+				"Worker %v queue %v kv-match %v\n",
+				worker.URL,
+				worker.BusyLoad(),
+				longestCommonPrefixLength(reqPromptish, promptish),
+			)
 			availablePromptish = append(availablePromptish, promptish)
 		} else {
 			log.Printf("Worker %v queue %v kv-match %v\n", worker.URL, worker.BusyLoad(), 0)
@@ -221,11 +228,19 @@ func (rr *RequestRouter) ChooseWorker(req map[string]interface{}) (*Worker, erro
 		selectedWorker = availableWorkers[maxIndex]
 	}
 
-	log.Printf("Selected worker %v load %v\n", selectedWorker.URL, selectedWorker.BusyLoad())
+	log.Printf(
+		"Selected worker %v load %v\n",
+		selectedWorker.URL,
+		selectedWorker.BusyLoad(),
+	)
 	return &selectedWorker, nil
 }
 
-func (rr *RequestRouter) AddRequestStart(url string, model string, query map[string]interface{}) string {
+func (rr *RequestRouter) AddRequestStart(
+	url string,
+	model string,
+	query map[string]interface{},
+) string {
 	rr.state.mu.Lock()
 	defer rr.state.mu.Unlock()
 
@@ -249,7 +264,10 @@ func (rr *RequestRouter) AddRequestStart(url string, model string, query map[str
 	return recordId
 }
 
-func (rr *RequestRouter) AddRequestFinish(recordId string, response map[string]interface{}) {
+func (rr *RequestRouter) AddRequestFinish(
+	recordId string,
+	response map[string]interface{},
+) {
 	rr.state.mu.Lock()
 	defer rr.state.mu.Unlock()
 
@@ -294,7 +312,7 @@ func (rr *RequestRouter) AddWorker(worker Worker) {
 func (rr *RequestRouter) DeleteWorkerByName(name string) bool {
 	rr.state.mu.Lock()
 	defer rr.state.mu.Unlock()
-	
+
 	for i, worker := range rr.state.Workers {
 		if worker.Name == name {
 			// Remove the worker by replacing it with the last element
@@ -305,7 +323,7 @@ func (rr *RequestRouter) DeleteWorkerByName(name string) bool {
 			return true
 		}
 	}
-	
+
 	log.Printf("Worker %s not found in router state", name)
 	return false
 }
@@ -361,7 +379,10 @@ func (rr *RequestRouter) SyncWorkersFromK8s() int {
 }
 
 // HandleSyncWorkers is an HTTP handler that triggers worker synchronization
-func (rr *RequestRouter) HandleSyncWorkers(w http.ResponseWriter, r *http.Request) {
+func (rr *RequestRouter) HandleSyncWorkers(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -374,11 +395,18 @@ func (rr *RequestRouter) HandleSyncWorkers(w http.ResponseWriter, r *http.Reques
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `{"status":"success","message":"Workers synchronized","count":%d}`, workerCount)
+	fmt.Fprintf(
+		w,
+		`{"status":"success","message":"Workers synchronized","count":%d}`,
+		workerCount,
+	)
 }
 
 // HandleListWorkers is an HTTP handler that returns the current list of workers
-func (rr *RequestRouter) HandleListWorkers(w http.ResponseWriter, r *http.Request) {
+func (rr *RequestRouter) HandleListWorkers(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -424,7 +452,10 @@ func (rr *RequestRouter) HandleListWorkers(w http.ResponseWriter, r *http.Reques
 func getKubeConfig() (*rest.Config, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		config, err = clientcmd.BuildConfigFromFlags("", clientcmd.RecommendedHomeFile)
+		config, err = clientcmd.BuildConfigFromFlags(
+			"",
+			clientcmd.RecommendedHomeFile,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get Kubernetes config: %v", err)
 		}
@@ -444,9 +475,11 @@ func getPodWorkersFromK8s(appLabel, namespace, port string) ([]Worker, error) {
 		return nil, fmt.Errorf("failed to create clientset: %v", err)
 	}
 
-	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("app=%s", appLabel),
-	})
+	pods, err := clientset.CoreV1().
+		Pods(namespace).
+		List(context.TODO(), metav1.ListOptions{
+			LabelSelector: fmt.Sprintf("app=%s", appLabel),
+		})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pods: %v", err)
 	}

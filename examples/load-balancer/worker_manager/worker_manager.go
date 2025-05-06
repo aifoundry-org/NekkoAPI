@@ -5,12 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/aifoundry-org/load-balancer/request_router"
 	"io"
 	"net/http"
 	"os"
 	"text/template"
 	"time"
+
+	"github.com/aifoundry-org/load-balancer/request_router"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,14 +25,19 @@ type WorkerManagerAPI struct {
 	router *request_router.RequestRouter
 }
 
-func NewWorkerManagerAPI(router *request_router.RequestRouter) *WorkerManagerAPI {
+func NewWorkerManagerAPI(
+	router *request_router.RequestRouter,
+) *WorkerManagerAPI {
 	return &WorkerManagerAPI{router: router}
 }
 
 func getKubeConfig() (*rest.Config, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		config, err = clientcmd.BuildConfigFromFlags("", clientcmd.RecommendedHomeFile)
+		config, err = clientcmd.BuildConfigFromFlags(
+			"",
+			clientcmd.RecommendedHomeFile,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get Kubernetes config: %v", err)
 		}
@@ -39,11 +45,17 @@ func getKubeConfig() (*rest.Config, error) {
 	return config, nil
 }
 
-func getPodIPByLabelAndNode(clientset *kubernetes.Clientset, label string, nodeName string) (string, error) {
+func getPodIPByLabelAndNode(
+	clientset *kubernetes.Clientset,
+	label string,
+	nodeName string,
+) (string, error) {
 	namespace := "default"
-	pods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), v1.ListOptions{
-		LabelSelector: fmt.Sprintf("app=%s", label),
-	})
+	pods, err := clientset.CoreV1().
+		Pods(namespace).
+		List(context.TODO(), v1.ListOptions{
+			LabelSelector: fmt.Sprintf("app=%s", label),
+		})
 	if err != nil {
 		return "", err
 	}
@@ -54,11 +66,19 @@ func getPodIPByLabelAndNode(clientset *kubernetes.Clientset, label string, nodeN
 		}
 	}
 
-	return "", fmt.Errorf("no pod found with label %s on node %s", label, nodeName)
+	return "", fmt.Errorf(
+		"no pod found with label %s on node %s",
+		label,
+		nodeName,
+	)
 }
 
 // PostRequest sends a POST request to the specified IP and port with the provided JSON payload.
-func PostRequest(ip string, port int, payload map[string]any) (map[string]any, error) {
+func PostRequest(
+	ip string,
+	port int,
+	payload map[string]any,
+) (map[string]any, error) {
 	// Construct the URL
 	// TODO: give as argument
 	url := fmt.Sprintf("http://%s:%d/content/", ip, port)
@@ -112,7 +132,13 @@ type PodTemplateData struct {
 
 // createWorkerPodManifest creates a pod manifest for a worker with the given parameters
 // using Go templates to process the template file
-func createWorkerPodManifest(templatePath string, nodeName string, modelAlias string, modelURL string, modelPath string) (*corev1.Pod, error) {
+func createWorkerPodManifest(
+	templatePath string,
+	nodeName string,
+	modelAlias string,
+	modelURL string,
+	modelPath string,
+) (*corev1.Pod, error) {
 	// Read the template file
 	yamlFile, err := os.ReadFile(templatePath)
 	if err != nil {
@@ -151,7 +177,12 @@ func createWorkerPodManifest(templatePath string, nodeName string, modelAlias st
 	return &pod, nil
 }
 
-func (self *WorkerManagerAPI) addWorker(nodeName string, modelAlias string, modelURL string, credentials string) (*request_router.Worker, error) {
+func (self *WorkerManagerAPI) addWorker(
+	nodeName string,
+	modelAlias string,
+	modelURL string,
+	credentials string,
+) (*request_router.Worker, error) {
 
 	fmt.Printf("addWorker %s\n", nodeName)
 
@@ -175,7 +206,11 @@ func (self *WorkerManagerAPI) addWorker(nodeName string, modelAlias string, mode
 		return nil, fmt.Errorf("error creating kubernetes client: %v", err)
 	}
 
-	storageManagerIP, err := getPodIPByLabelAndNode(clientset, "nekko-sm", nodeName)
+	storageManagerIP, err := getPodIPByLabelAndNode(
+		clientset,
+		"nekko-sm",
+		nodeName,
+	)
 	if err != nil {
 		// TODO: return proper error
 		return nil, err
@@ -206,7 +241,10 @@ func (self *WorkerManagerAPI) addWorker(nodeName string, modelAlias string, mode
 	// Split the digest to insert the additional directory level
 	parts := bytes.Split([]byte(digestStr), []byte(":"))
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid digest format, expected 'algo:hash', got: %s", digestStr)
+		return nil, fmt.Errorf(
+			"invalid digest format, expected 'algo:hash', got: %s",
+			digestStr,
+		)
 	}
 
 	algo := string(parts[0])
@@ -214,13 +252,18 @@ func (self *WorkerManagerAPI) addWorker(nodeName string, modelAlias string, mode
 
 	// Enforce SHA256 algorithm
 	if algo != "sha256" {
-		return nil, fmt.Errorf("unsupported digest algorithm: %s, only sha256 is supported", algo)
+		return nil, fmt.Errorf(
+			"unsupported digest algorithm: %s, only sha256 is supported",
+			algo,
+		)
 	}
 
 	// Validate hash to prevent path traversal attacks
 	// SHA256 hashes are 64 hex characters
 	if len(hash) != 64 {
-		return nil, fmt.Errorf("invalid hash length: expected 64 characters for SHA256")
+		return nil, fmt.Errorf(
+			"invalid hash length: expected 64 characters for SHA256",
+		)
 	}
 
 	// Ensure hash only contains valid hexadecimal characters
@@ -234,7 +277,13 @@ func (self *WorkerManagerAPI) addWorker(nodeName string, modelAlias string, mode
 
 	// Create the Pod manifest from template
 	templatePath := "/app/templates/worker-pod-template.yaml"
-	pod, err := createWorkerPodManifest(templatePath, nodeName, modelAlias, modelURL, modelPath)
+	pod, err := createWorkerPodManifest(
+		templatePath,
+		nodeName,
+		modelAlias,
+		modelURL,
+		modelPath,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error creating pod manifest: %w", err)
 	}
@@ -248,7 +297,9 @@ func (self *WorkerManagerAPI) addWorker(nodeName string, modelAlias string, mode
 	}
 
 	// Deploy the Pod
-	createdPod, err := clientset.CoreV1().Pods(pod.Namespace).Create(context.Background(), pod, v1.CreateOptions{})
+	createdPod, err := clientset.CoreV1().
+		Pods(pod.Namespace).
+		Create(context.Background(), pod, v1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error creating pod: %w", err)
 	}
@@ -262,7 +313,9 @@ func (self *WorkerManagerAPI) addWorker(nodeName string, modelAlias string, mode
 
 	for i := range maxRetries {
 		// Get the latest pod information
-		pod, err := clientset.CoreV1().Pods(createdPod.Namespace).Get(context.Background(), createdPod.Name, v1.GetOptions{})
+		pod, err := clientset.CoreV1().
+			Pods(createdPod.Namespace).
+			Get(context.Background(), createdPod.Name, v1.GetOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("error getting pod status: %w", err)
 		}
@@ -274,12 +327,20 @@ func (self *WorkerManagerAPI) addWorker(nodeName string, modelAlias string, mode
 			break
 		}
 
-		fmt.Printf("Retry %d/%d: Pod %s does not have an IP address yet\n", i+1, maxRetries, pod.Name)
+		fmt.Printf(
+			"Retry %d/%d: Pod %s does not have an IP address yet\n",
+			i+1,
+			maxRetries,
+			pod.Name,
+		)
 		time.Sleep(retryInterval)
 	}
 
 	if podIP == "" {
-		return nil, fmt.Errorf("timed out waiting for pod %s to get an IP address", createdPod.Name)
+		return nil, fmt.Errorf(
+			"timed out waiting for pod %s to get an IP address",
+			createdPod.Name,
+		)
 	}
 
 	// Construct the worker URL using the pod IP and the expected port
@@ -304,7 +365,10 @@ type PostRequestBody struct {
 	Credentials string `json:"credentials"`
 }
 
-func (self *WorkerManagerAPI) handlePost(w http.ResponseWriter, r *http.Request) {
+func (self *WorkerManagerAPI) handlePost(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	// POST params:
 	//   node_name: to be used in a selector
 	//   model: url accepted by storage_manager
@@ -323,7 +387,12 @@ func (self *WorkerManagerAPI) handlePost(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Process the parsed data (reqBody)
-	worker, err := self.addWorker(reqBody.NodeName, reqBody.ModelAlias, reqBody.ModelURL, reqBody.Credentials)
+	worker, err := self.addWorker(
+		reqBody.NodeName,
+		reqBody.ModelAlias,
+		reqBody.ModelURL,
+		reqBody.Credentials,
+	)
 
 	if err != nil {
 		fmt.Printf("Error %v\n", err)
@@ -357,7 +426,10 @@ func sanitizeName(name string) string {
 	return result
 }
 
-func (self *WorkerManagerAPI) handleDelete(w http.ResponseWriter, r *http.Request) {
+func (self *WorkerManagerAPI) handleDelete(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	// Extract worker name from query parameters
 	workerName := r.URL.Query().Get("name")
 	if workerName == "" {
@@ -368,21 +440,35 @@ func (self *WorkerManagerAPI) handleDelete(w http.ResponseWriter, r *http.Reques
 	// Get Kubernetes client
 	config, err := getKubeConfig()
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error building kubeconfig: %v", err), http.StatusInternalServerError)
+		http.Error(
+			w,
+			fmt.Sprintf("Error building kubeconfig: %v", err),
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error creating kubernetes client: %v", err), http.StatusInternalServerError)
+		http.Error(
+			w,
+			fmt.Sprintf("Error creating kubernetes client: %v", err),
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
 	// Delete the pod
 	namespace := "default" // Using default namespace
-	err = clientset.CoreV1().Pods(namespace).Delete(context.Background(), workerName, v1.DeleteOptions{})
+	err = clientset.CoreV1().
+		Pods(namespace).
+		Delete(context.Background(), workerName, v1.DeleteOptions{})
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error deleting pod: %v", err), http.StatusInternalServerError)
+		http.Error(
+			w,
+			fmt.Sprintf("Error deleting pod: %v", err),
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -392,10 +478,18 @@ func (self *WorkerManagerAPI) handleDelete(w http.ResponseWriter, r *http.Reques
 	// Return success response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, `{"status":"success","message":"Worker %s deleted","found_in_router":%t}`, workerName, deleted)
+	fmt.Fprintf(
+		w,
+		`{"status":"success","message":"Worker %s deleted","found_in_router":%t}`,
+		workerName,
+		deleted,
+	)
 }
 
-func (self *WorkerManagerAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (self *WorkerManagerAPI) ServeHTTP(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	fmt.Println("Hello from worker manager.")
 	w.Header().Set("Content-Type", "application/json")
 

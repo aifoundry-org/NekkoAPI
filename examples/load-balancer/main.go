@@ -5,8 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/aifoundry-org/load-balancer/request_router"
-	"github.com/aifoundry-org/load-balancer/worker_manager"
 	"io"
 	"log"
 	"net/http"
@@ -14,6 +12,9 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/aifoundry-org/load-balancer/request_router"
+	"github.com/aifoundry-org/load-balancer/worker_manager"
 )
 
 type Proxy struct {
@@ -24,7 +25,10 @@ func NewProxy(router *request_router.RequestRouter) *Proxy {
 	return &Proxy{router: router}
 }
 
-func modifyResponse(router *request_router.RequestRouter, recordId string) func(*http.Response) error {
+func modifyResponse(
+	router *request_router.RequestRouter,
+	recordId string,
+) func(*http.Response) error {
 	// Create a function closure for modifying JSON
 	jsonModifier := func(jsonData map[string]interface{}) {
 		modifyJSONData(jsonData)
@@ -40,7 +44,10 @@ func modifyResponse(router *request_router.RequestRouter, recordId string) func(
 
 	return func(resp *http.Response) error {
 		// Detect SSE by checking the Content-Type header
-		if strings.HasPrefix(resp.Header.Get("Content-Type"), "text/event-stream") {
+		if strings.HasPrefix(
+			resp.Header.Get("Content-Type"),
+			"text/event-stream",
+		) {
 			// Modify SSE stream
 			reader, writer := io.Pipe()
 			go modifySSEStream(resp.Body, writer, jsonModifier, finishCallback)
@@ -54,7 +61,11 @@ func modifyResponse(router *request_router.RequestRouter, recordId string) func(
 }
 
 // modifyJSONResponse modifies a standard JSON response using a provided modification function.
-func modifyJSONResponse(resp *http.Response, jsonModifier func(map[string]interface{}), finishCallback func(map[string]interface{}, error)) error {
+func modifyJSONResponse(
+	resp *http.Response,
+	jsonModifier func(map[string]interface{}),
+	finishCallback func(map[string]interface{}, error),
+) error {
 	// Read the original response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -99,7 +110,12 @@ func modifyJSONResponse(resp *http.Response, jsonModifier func(map[string]interf
 }
 
 // modifySSEStream modifies SSE events containing JSON using a provided modification function.
-func modifySSEStream(input io.ReadCloser, output *io.PipeWriter, jsonModifier func(map[string]interface{}), finishCallback func(map[string]interface{}, error)) {
+func modifySSEStream(
+	input io.ReadCloser,
+	output *io.PipeWriter,
+	jsonModifier func(map[string]interface{}),
+	finishCallback func(map[string]interface{}, error),
+) {
 	var responseMessage map[string]interface{} = make(map[string]interface{})
 	defer input.Close()
 	defer output.Close()
@@ -167,7 +183,11 @@ func modifyJSONData(jsonData map[string]interface{}) {
 	jsonData["model"] = "kvarbakulis"
 }
 
-func modifyRequest(proxy *httputil.ReverseProxy, router *request_router.RequestRouter, req *http.Request) error {
+func modifyRequest(
+	proxy *httputil.ReverseProxy,
+	router *request_router.RequestRouter,
+	req *http.Request,
+) error {
 	// Read the original body
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -188,7 +208,11 @@ func modifyRequest(proxy *httputil.ReverseProxy, router *request_router.RequestR
 	req.URL.Scheme = target_url.Scheme
 	req.URL.Host = target_url.Host
 
-	recordId := router.AddRequestStart(target_worker.URL, target_worker.Model.Alias, jsonData)
+	recordId := router.AddRequestStart(
+		target_worker.URL,
+		target_worker.Model.Alias,
+		jsonData,
+	)
 
 	// Modify the model field from alias to the full model name.
 	jsonData["model"] = target_worker.Model.FullName
@@ -218,7 +242,9 @@ func (p *Proxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	proxy.ServeHTTP(rw, req)
 }
 
-func v1Models(router *request_router.RequestRouter) func(http.ResponseWriter, *http.Request) {
+func v1Models(
+	router *request_router.RequestRouter,
+) func(http.ResponseWriter, *http.Request) {
 
 	return func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Content-Type", "application/json")
@@ -241,7 +267,10 @@ func v1Models(router *request_router.RequestRouter) func(http.ResponseWriter, *h
 			}
 
 			// Append the model entry to the "data" array
-			response["data"] = append(response["data"].([]interface{}), modelEntry)
+			response["data"] = append(
+				response["data"].([]interface{}),
+				modelEntry,
+			)
 		}
 
 		encoder := json.NewEncoder(rw)
@@ -262,8 +291,15 @@ func authMiddleware(next http.Handler) http.Handler {
 
 			// Check if the header is present and in the correct format
 			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-				log.Printf("Authentication failed: No bearer token provided for %s", r.URL.Path)
-				http.Error(w, "Unauthorized: Bearer token required", http.StatusUnauthorized)
+				log.Printf(
+					"Authentication failed: No bearer token provided for %s",
+					r.URL.Path,
+				)
+				http.Error(
+					w,
+					"Unauthorized: Bearer token required",
+					http.StatusUnauthorized,
+				)
 				return
 			}
 
@@ -272,8 +308,15 @@ func authMiddleware(next http.Handler) http.Handler {
 
 			// Validate the token
 			if token != validToken {
-				log.Printf("Authentication failed: Invalid token for %s", r.URL.Path)
-				http.Error(w, "Unauthorized: Invalid token", http.StatusUnauthorized)
+				log.Printf(
+					"Authentication failed: Invalid token for %s",
+					r.URL.Path,
+				)
+				http.Error(
+					w,
+					"Unauthorized: Invalid token",
+					http.StatusUnauthorized,
+				)
 				return
 			}
 
