@@ -49,6 +49,16 @@ spec:
         image: docker.io/aifoundryorg/load-balancer:latest
         ports:
         - containerPort: 8080
+        volumeMounts:
+        - name: worker-pod-template
+          mountPath: "/app/templates"
+      volumes:
+        - name: worker-pod-template
+          configMap:
+            name: worker-pod-template
+            items:
+            - key: "worker-pod-template.yaml"
+              path: "worker-pod-template.yaml"
 ---
 kind: Service
 apiVersion: v1
@@ -64,3 +74,41 @@ spec:
   selector:
     app: nekko-lb
   type: LoadBalancer
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: worker-pod-template
+data:
+  worker-pod-template.yaml: |
+    kind: Pod
+    apiVersion: v1
+    metadata:
+      name: worker-pod
+      namespace: default
+      labels:
+        app: nekko-worker
+        model-alias: {{.ModelAlias}}
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: {{.NodeName}}
+      containers:
+      - name: nekko-worker
+        image: docker.io/aifoundryorg/nekko-api:latest
+        ports:
+        - containerPort: 8000
+        env:
+          - name: MODEL_ALIAS
+            value: {{.ModelAlias}}
+          - name: MODEL
+            value: {{.ModelURL}}
+          - name: MODEL_PATH
+            value: {{.ModelPath}}
+        volumeMounts:
+        - name: model-cache-dir
+          mountPath: /var/lib/nekko/cache
+          readOnly: true
+      volumes:
+      - name: model-cache-dir
+        hostPath:
+          path: /data
